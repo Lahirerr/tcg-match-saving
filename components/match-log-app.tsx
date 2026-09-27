@@ -1,0 +1,286 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ModeTabs } from "@/components/mode-tabs";
+import { MatchForm } from "@/components/match-form";
+import { PokemonPickerDialog } from "@/components/pokemon-picker-dialog";
+import { MatchupTable } from "@/components/matchup-table";
+import { LogList } from "@/components/log-list";
+import { StatChips } from "@/components/stat-chips";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MODE_COPY } from "@/lib/constants";
+import { todayISO, uid, uniqueSorted } from "@/lib/format";
+import { fetchPokemonData } from "@/lib/pokemon";
+import { loadMatches, saveMatches } from "@/lib/storage";
+import { computeMatchupStats, computeOverallStats } from "@/lib/stats";
+import type {
+  EventCategory,
+  Match,
+  MatchMode,
+  MatchResult,
+  PickerSelection,
+  Pokemon,
+  TurnOrder,
+} from "@/lib/types";
+
+const DECK_FILTER_ALL = "__all__";
+
+export function MatchLogApp() {
+  const [mode, setMode] = useState<MatchMode>("live");
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [pokemonData, setPokemonData] = useState<Pokemon[]>([]);
+  const [pokemonLoading, setPokemonLoading] = useState(true);
+
+  const [selection, setSelection] = useState<PickerSelection>({ mine: [], opp: [] });
+  const [pickerContext, setPickerContext] = useState<"mine" | "opp" | null>(null);
+  const [pickerSearch, setPickerSearch] = useState("");
+
+  const [date, setDate] = useState("");
+  const [eventName, setEventName] = useState("");
+  const [eventCategory, setEventCategory] = useState<EventCategory>("");
+  const [mineSuffix, setMineSuffix] = useState("");
+  const [oppSuffix, setOppSuffix] = useState("");
+  const [result, setResult] = useState<MatchResult>("W");
+  const [order, setOrder] = useState<TurnOrder>("");
+  const [brick, setBrick] = useState(false);
+  const [notes, setNotes] = useState("");
+
+  const [filterValue, setFilterValue] = useState("");
+  const [pendingDelete, setPendingDelete] = useState<Record<string, boolean>>({});
+  const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  useEffect(() => {
+    setMatches(loadMatches());
+    setDate(todayISO());
+    fetchPokemonData().then((data) => {
+      setPokemonData(data);
+      setPokemonLoading(false);
+    });
+  }, []);
+
+  const pokemonById = useMemo(() => {
+    const map = new Map<number, Pokemon>();
+    pokemonData.forEach((p) => map.set(p.id, p));
+    return map;
+  }, [pokemonData]);
+
+  function switchMode(next: MatchMode) {
+    setMode(next);
+    setFilterValue("");
+    if (next === "live") {
+      setEventName("");
+      setEventCategory("");
+      setDate(todayISO());
+    }
+  }
+
+  function openPicker(context: "mine" | "opp") {
+    setPickerContext(context);
+    setPickerSearch("");
+  }
+
+  function closePicker() {
+    setPickerContext(null);
+  }
+
+  function togglePokemon(pokemon: Pokemon) {
+    if (!pickerContext) return;
+    setSelection((prev) => {
+      const arr = prev[pickerContext];
+      const idx = arr.findIndex((p) => p.id === pokemon.id);
+      if (idx !== -1) {
+        return { ...prev, [pickerContext]: arr.filter((p) => p.id !== pokemon.id) };
+      }
+      if (arr.length >= 2) return prev;
+      return { ...prev, [pickerContext]: [...arr, pokemon] };
+    });
+  }
+
+  function removePokemon(context: "mine" | "opp", id: number) {
+    setSelection((prev) => ({ ...prev, [context]: prev[context].filter((p) => p.id !== id) }));
+  }
+
+  function handleDeleteClick(id: string) {
+    if (pendingDelete[id]) {
+      clearTimeout(pendingTimers.current[id]);
+      delete pendingTimers.current[id];
+      setPendingDelete((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setMatches((prev) => {
+        const next = prev.filter((m) => m.id !== id);
+        saveMatches(next);
+        return next;
+      });
+    } else {
+      setPendingDelete((prev) => ({ ...prev, [id]: true }));
+      pendingTimers.current[id] = setTimeout(() => {
+        setPendingDelete((prev) => {
+          const next = { ...prev };
+          delete next[id];
+          return next;
+        });
+      }, 3000);
+    }
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (selection.mine.length === 0 || selection.opp.length === 0) return;
+
+    const dateVal = date || todayISO();
+    const myDeckName =
+      selection.mine.map((p) => p.name).join(" & ") + (mineSuffix.trim() ? ` ${mineSuffix.trim()}` : "");
+    const oppDeckName =
+      selection.opp.map((p) => p.name).join(" & ") + (oppSuffix.trim() ? ` ${oppSuffix.trim()}` : "");
+
+    const newMatch: Match = {
+      id: uid(),
+      mode,
+      date: dateVal,
+      eventName: mode === "offline" ? eventName.trim() : "",
+      eventCategory: mode === "offline" ? eventCategory : "",
+      myDeck: myDeckName,
+      myDeckIds: selection.mine.map((p) => p.id),
+      oppDeck: oppDeckName,
+      oppDeckIds: selection.opp.map((p) => p.id),
+      result,
+      order,
+      brick,
+      notes: notes.trim(),
+      createdAt: Date.now(),
+    };
+
+    setMatches((prev) => {
+      const next = [...prev, newMatch];
+      saveMatches(next);
+      return next;
+    });
+
+    // Reset only the fields the original app resets after a submit — deck-of-mine
+    // selection, its suffix, and the date are intentionally left as-is so logging
+    // several games in a row with the same deck stays fast.
+    setSelection((prev) => ({ ...prev, opp: [] }));
+    setBrick(false);
+    if (mode === "offline") {
+      setEventName("");
+      setEventCategory("");
+    }
+    setOppSuffix("");
+    setNotes("");
+    setResult("W");
+    setOrder("");
+  }
+
+  const modeMatches = useMemo(() => matches.filter((m) => (m.mode || "live") === mode), [matches, mode]);
+  const overallStats = useMemo(() => computeOverallStats(modeMatches), [modeMatches]);
+  const deckOptions = useMemo(() => uniqueSorted(modeMatches.map((m) => m.myDeck)), [modeMatches]);
+  const filtered = useMemo(
+    () => (filterValue ? modeMatches.filter((m) => m.myDeck === filterValue) : modeMatches),
+    [modeMatches, filterValue]
+  );
+  const matchupRows = useMemo(() => computeMatchupStats(filtered), [filtered]);
+
+  const copy = MODE_COPY[mode];
+
+  return (
+    <div className="max-w-[880px] mx-auto px-5 pt-8 pb-16">
+      <ModeTabs mode={mode} onChange={switchMode} />
+
+      <header className="flex flex-wrap items-end justify-between gap-5 mb-7">
+        <div>
+          <p className="font-display text-[27px] sm:text-[32px] font-semibold tracking-tight mb-1">
+            {copy.wordmark}
+          </p>
+          <p className="text-[var(--app-text-muted)] text-sm">{copy.tagline}</p>
+        </div>
+        <StatChips stats={overallStats} />
+      </header>
+
+      <MatchForm
+        mode={mode}
+        formTitle={copy.formTitle}
+        date={date}
+        onDateChange={setDate}
+        eventName={eventName}
+        onEventNameChange={setEventName}
+        eventCategory={eventCategory}
+        onEventCategoryChange={setEventCategory}
+        mineSelection={selection.mine}
+        oppSelection={selection.opp}
+        onOpenPicker={openPicker}
+        onRemovePokemon={removePokemon}
+        pokemonLoading={pokemonLoading}
+        mineSuffix={mineSuffix}
+        onMineSuffixChange={setMineSuffix}
+        oppSuffix={oppSuffix}
+        onOppSuffixChange={setOppSuffix}
+        result={result}
+        onResultChange={setResult}
+        order={order}
+        onOrderChange={setOrder}
+        brick={brick}
+        onBrickToggle={() => setBrick((v) => !v)}
+        notes={notes}
+        onNotesChange={setNotes}
+        onSubmit={handleSubmit}
+      />
+
+      <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px] mb-6">
+        <div className="flex items-center justify-between flex-wrap gap-2.5 mb-3.5">
+          <h2 className="font-display text-[19px] font-semibold">สรุปคู่ต่อสู้</h2>
+          <Select
+            value={filterValue === "" ? DECK_FILTER_ALL : filterValue}
+            onValueChange={(v) => setFilterValue(!v || v === DECK_FILTER_ALL ? "" : v)}
+          >
+            <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={DECK_FILTER_ALL}>เด็คของฉันทั้งหมด</SelectItem>
+              {deckOptions.map((d) => (
+                <SelectItem key={d} value={d}>
+                  {d}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <MatchupTable rows={matchupRows} byId={pokemonById} />
+      </section>
+
+      <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px]">
+        <div className="flex items-center justify-between flex-wrap gap-2.5 mb-3.5">
+          <h2 className="font-display text-[19px] font-semibold">ประวัติการแข่งขัน</h2>
+        </div>
+        <LogList
+          matches={filtered}
+          byId={pokemonById}
+          pendingDelete={pendingDelete}
+          onDeleteClick={handleDeleteClick}
+        />
+      </section>
+
+      <PokemonPickerDialog
+        open={pickerContext !== null}
+        context={pickerContext}
+        pokemonData={pokemonData}
+        selectedIds={pickerContext ? selection[pickerContext].map((p) => p.id) : []}
+        search={pickerSearch}
+        onSearchChange={setPickerSearch}
+        onToggle={togglePokemon}
+        onOpenChange={(open) => {
+          if (!open) closePicker();
+        }}
+      />
+    </div>
+  );
+}
