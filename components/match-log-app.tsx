@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ModeTabs } from "@/components/mode-tabs";
 import { MatchForm } from "@/components/match-form";
+import { OfflineHome } from "@/components/offline-home";
 import { PokemonPickerDialog } from "@/components/pokemon-picker-dialog";
 import { MatchupTable } from "@/components/matchup-table";
 import { LogList } from "@/components/log-list";
@@ -15,30 +16,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { EVENT_CATEGORY_LABELS, MODE_COPY } from "@/lib/constants";
+import { MODE_COPY } from "@/lib/constants";
 import { formatDateLabel, todayISO, uid, uniqueSorted } from "@/lib/format";
 import { fetchPokemonData } from "@/lib/pokemon";
-import { loadMatches, saveMatches } from "@/lib/storage";
+import { loadMatchesWithMigration, saveEvents, saveMatches } from "@/lib/storage";
 import { computeMatchupStats, computeOverallStats } from "@/lib/stats";
 import type {
-  EventCategory,
   Match,
   MatchMode,
   MatchResult,
   PickerSelection,
   Pokemon,
+  PtcgEvent,
   TurnOrder,
 } from "@/lib/types";
 
 const DECK_FILTER_ALL = "__all__";
 const HISTORY_FILTER_ALL = "__all__";
-const EVENT_CATEGORY_KEYS = Object.keys(EVENT_CATEGORY_LABELS) as Exclude<EventCategory, "">[];
 const PAGE_SIZE_OPTIONS = [5, 10, 15, 20];
 const DEFAULT_PAGE_SIZE = 10;
 
 export function MatchLogApp() {
   const [mode, setMode] = useState<MatchMode>("live");
   const [matches, setMatches] = useState<Match[]>([]);
+  const [events, setEvents] = useState<PtcgEvent[]>([]);
   const [pokemonData, setPokemonData] = useState<Pokemon[]>([]);
   const [pokemonLoading, setPokemonLoading] = useState(true);
 
@@ -47,8 +48,6 @@ export function MatchLogApp() {
   const [pickerSearch, setPickerSearch] = useState("");
 
   const [date, setDate] = useState("");
-  const [eventName, setEventName] = useState("");
-  const [eventCategory, setEventCategory] = useState<EventCategory>("");
   const [mineSuffix, setMineSuffix] = useState("");
   const [oppSuffix, setOppSuffix] = useState("");
   const [result, setResult] = useState<MatchResult>("W");
@@ -64,7 +63,9 @@ export function MatchLogApp() {
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
-    setMatches(loadMatches());
+    const data = loadMatchesWithMigration();
+    setMatches(data.matches);
+    setEvents(data.events);
     setDate(todayISO());
     fetchPokemonData().then((data) => {
       setPokemonData(data);
@@ -84,8 +85,6 @@ export function MatchLogApp() {
     setHistoryFilterValue("");
     setPage(1);
     if (next === "live") {
-      setEventName("");
-      setEventCategory("");
       setDate(todayISO());
     }
   }
@@ -154,10 +153,10 @@ export function MatchLogApp() {
 
     const newMatch: Match = {
       id: uid(),
-      mode,
+      mode: "live",
       date: dateVal,
-      eventName: mode === "offline" ? eventName.trim() : "",
-      eventCategory: mode === "offline" ? eventCategory : "",
+      eventName: "",
+      eventCategory: "",
       myDeck: myDeckName,
       myDeckIds: selection.mine.map((p) => p.id),
       oppDeck: oppDeckName,
@@ -180,10 +179,6 @@ export function MatchLogApp() {
     // several games in a row with the same deck stays fast.
     setSelection((prev) => ({ ...prev, opp: [] }));
     setBrick(false);
-    if (mode === "offline") {
-      setEventName("");
-      setEventCategory("");
-    }
     setOppSuffix("");
     setNotes("");
     setResult("W");
@@ -191,27 +186,32 @@ export function MatchLogApp() {
     setPage(1);
   }
 
-  const modeMatches = useMemo(() => matches.filter((m) => (m.mode || "live") === mode), [matches, mode]);
-  const overallStats = useMemo(() => computeOverallStats(modeMatches), [modeMatches]);
-  const deckOptions = useMemo(() => uniqueSorted(modeMatches.map((m) => m.myDeck)), [modeMatches]);
+  function handleCreateEvent(newEvent: PtcgEvent) {
+    setEvents((prev) => {
+      const next = [...prev, newEvent];
+      saveEvents(next);
+      return next;
+    });
+  }
+
+  const liveMatches = useMemo(() => matches.filter((m) => (m.mode || "live") === "live"), [matches]);
+  const offlineMatches = useMemo(() => matches.filter((m) => m.mode === "offline"), [matches]);
+  const overallStats = useMemo(() => computeOverallStats(liveMatches), [liveMatches]);
+  const deckOptions = useMemo(() => uniqueSorted(liveMatches.map((m) => m.myDeck)), [liveMatches]);
   const filtered = useMemo(
-    () => (filterValue ? modeMatches.filter((m) => m.myDeck === filterValue) : modeMatches),
-    [modeMatches, filterValue]
+    () => (filterValue ? liveMatches.filter((m) => m.myDeck === filterValue) : liveMatches),
+    [liveMatches, filterValue]
   );
   const matchupRows = useMemo(() => computeMatchupStats(filtered), [filtered]);
 
   const historyDateOptions = useMemo(
-    () => uniqueSorted(modeMatches.map((m) => m.date)).sort((a, b) => b.localeCompare(a)),
-    [modeMatches]
+    () => uniqueSorted(liveMatches.map((m) => m.date)).sort((a, b) => b.localeCompare(a)),
+    [liveMatches]
   );
   const historyFiltered = useMemo(() => {
-    const base = !historyFilterValue
-      ? filtered
-      : mode === "live"
-        ? filtered.filter((m) => m.date === historyFilterValue)
-        : filtered.filter((m) => m.eventCategory === historyFilterValue);
+    const base = !historyFilterValue ? filtered : filtered.filter((m) => m.date === historyFilterValue);
     return base.slice().sort((a, b) => b.createdAt - a.createdAt);
-  }, [filtered, historyFilterValue, mode]);
+  }, [filtered, historyFilterValue]);
 
   const pageCount = Math.max(1, Math.ceil(historyFiltered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -233,127 +233,127 @@ export function MatchLogApp() {
           </p>
           <p className="text-[var(--app-text-muted)] text-sm">{copy.tagline}</p>
         </div>
-        <StatChips stats={overallStats} />
+        {mode === "live" ? <StatChips stats={overallStats} /> : null}
       </header>
 
-      <MatchForm
-        mode={mode}
-        formTitle={copy.formTitle}
-        date={date}
-        onDateChange={setDate}
-        eventName={eventName}
-        onEventNameChange={setEventName}
-        eventCategory={eventCategory}
-        onEventCategoryChange={setEventCategory}
-        mineSelection={selection.mine}
-        oppSelection={selection.opp}
-        onOpenPicker={openPicker}
-        onRemovePokemon={removePokemon}
-        pokemonLoading={pokemonLoading}
-        mineSuffix={mineSuffix}
-        onMineSuffixChange={setMineSuffix}
-        oppSuffix={oppSuffix}
-        onOppSuffixChange={setOppSuffix}
-        result={result}
-        onResultChange={setResult}
-        order={order}
-        onOrderChange={setOrder}
-        brick={brick}
-        onBrickToggle={() => setBrick((v) => !v)}
-        notes={notes}
-        onNotesChange={setNotes}
-        onSubmit={handleSubmit}
-      />
+      {mode === "live" ? (
+        <>
+          <MatchForm
+            formTitle={copy.formTitle}
+            date={date}
+            onDateChange={setDate}
+            mineSelection={selection.mine}
+            oppSelection={selection.opp}
+            onOpenPicker={openPicker}
+            onRemovePokemon={removePokemon}
+            pokemonLoading={pokemonLoading}
+            mineSuffix={mineSuffix}
+            onMineSuffixChange={setMineSuffix}
+            oppSuffix={oppSuffix}
+            onOppSuffixChange={setOppSuffix}
+            result={result}
+            onResultChange={setResult}
+            order={order}
+            onOrderChange={setOrder}
+            brick={brick}
+            onBrickToggle={() => setBrick((v) => !v)}
+            notes={notes}
+            onNotesChange={setNotes}
+            onSubmit={handleSubmit}
+          />
 
-      <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px] mb-6">
-        <div className="flex items-center justify-between flex-wrap gap-2.5 mb-3.5">
-          <h2 className="font-display text-[19px] font-semibold">สรุปคู่ต่อสู้</h2>
-          <Select
-            value={filterValue === "" ? DECK_FILTER_ALL : filterValue}
-            onValueChange={(v) => {
-              setFilterValue(!v || v === DECK_FILTER_ALL ? "" : v);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={DECK_FILTER_ALL}>เด็คของฉันทั้งหมด</SelectItem>
-              {deckOptions.map((d) => (
-                <SelectItem key={d} value={d}>
-                  {d}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <MatchupTable rows={matchupRows} byId={pokemonById} />
-      </section>
+          <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px] mb-6">
+            <div className="flex items-center justify-between flex-wrap gap-2.5 mb-3.5">
+              <h2 className="font-display text-[19px] font-semibold">สรุปคู่ต่อสู้</h2>
+              <Select
+                value={filterValue === "" ? DECK_FILTER_ALL : filterValue}
+                onValueChange={(v) => {
+                  setFilterValue(!v || v === DECK_FILTER_ALL ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={DECK_FILTER_ALL}>เด็คของฉันทั้งหมด</SelectItem>
+                  {deckOptions.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <MatchupTable rows={matchupRows} byId={pokemonById} />
+          </section>
 
-      <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px]">
-        <div className="flex items-center justify-between flex-wrap gap-2.5 mb-3.5">
-          <h2 className="font-display text-[19px] font-semibold">ประวัติการแข่งขัน</h2>
-          <Select
-            value={historyFilterValue === "" ? HISTORY_FILTER_ALL : historyFilterValue}
-            onValueChange={(v) => {
-              setHistoryFilterValue(!v || v === HISTORY_FILTER_ALL ? "" : v);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={HISTORY_FILTER_ALL}>
-                {mode === "live" ? "ทุกวัน" : "ทุกหมวดหมู่"}
-              </SelectItem>
-              {mode === "live"
-                ? historyDateOptions.map((d) => (
+          <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px]">
+            <div className="flex items-center justify-between flex-wrap gap-2.5 mb-3.5">
+              <h2 className="font-display text-[19px] font-semibold">ประวัติการแข่งขัน</h2>
+              <Select
+                value={historyFilterValue === "" ? HISTORY_FILTER_ALL : historyFilterValue}
+                onValueChange={(v) => {
+                  setHistoryFilterValue(!v || v === HISTORY_FILTER_ALL ? "" : v);
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={HISTORY_FILTER_ALL}>ทุกวัน</SelectItem>
+                  {historyDateOptions.map((d) => (
                     <SelectItem key={d} value={d}>
                       {formatDateLabel(d)}
                     </SelectItem>
-                  ))
-                : EVENT_CATEGORY_KEYS.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {EVENT_CATEGORY_LABELS[cat]}
-                    </SelectItem>
                   ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <LogList
-          matches={paginatedHistory}
-          byId={pokemonById}
-          pendingDelete={pendingDelete}
-          onDeleteClick={handleDeleteClick}
-        />
-        <Pagination
-          page={currentPage}
-          pageCount={pageCount}
-          pageSize={pageSize}
-          pageSizeOptions={PAGE_SIZE_OPTIONS}
-          totalItems={historyFiltered.length}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
-        />
-      </section>
+                </SelectContent>
+              </Select>
+            </div>
+            <LogList
+              matches={paginatedHistory}
+              byId={pokemonById}
+              pendingDelete={pendingDelete}
+              onDeleteClick={handleDeleteClick}
+            />
+            <Pagination
+              page={currentPage}
+              pageCount={pageCount}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              totalItems={historyFiltered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </section>
 
-      <PokemonPickerDialog
-        open={pickerContext !== null}
-        context={pickerContext}
-        pokemonData={pokemonData}
-        selectedIds={pickerContext ? selection[pickerContext].map((p) => p.id) : []}
-        search={pickerSearch}
-        onSearchChange={setPickerSearch}
-        onToggle={togglePokemon}
-        onOpenChange={(open) => {
-          if (!open) closePicker();
-        }}
-      />
+          <PokemonPickerDialog
+            open={pickerContext !== null}
+            context={pickerContext}
+            pokemonData={pokemonData}
+            selectedIds={pickerContext ? selection[pickerContext].map((p) => p.id) : []}
+            search={pickerSearch}
+            onSearchChange={setPickerSearch}
+            onToggle={togglePokemon}
+            onOpenChange={(open) => {
+              if (!open) closePicker();
+            }}
+          />
+        </>
+      ) : (
+        <OfflineHome
+          events={events}
+          matches={offlineMatches}
+          pokemonData={pokemonData}
+          pokemonById={pokemonById}
+          pokemonLoading={pokemonLoading}
+          onCreateEvent={handleCreateEvent}
+        />
+      )}
     </div>
   );
 }

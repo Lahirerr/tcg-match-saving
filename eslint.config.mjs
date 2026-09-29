@@ -20,6 +20,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local git worktree checkouts (each has its own node_modules/source tree)
+    ".claude/**",
   ]),
 ]);
 

@@ -1,6 +1,7 @@
 import type { EventCategory, MatchMode } from "@/lib/types";
 
 export const STORAGE_KEY = "ptcg_matchlog_v1";
+export const EVENTS_STORAGE_KEY = "ptcg_events_v1";
 export const MAX_PER_SIDE = 2;
 
 export const EVENT_CATEGORY_LABELS: Record<Exclude<EventCategory, "">, string> = {
@@ -38,7 +39,7 @@ export const MODE_COPY: Record<
   },
   offline: {
     wordmark: "สมุดแมทช์ · เล่นข้างนอก",
-    tagline: "บันทึกผลการแข่งขันแบบจับต้องจริง ตั้งชื่อรายการและระบุประเภทได้",
-    formTitle: "บันทึกแมทช์ใหม่ (เล่นข้างนอก)",
+    tagline: "สร้างรายการแข่งขัน แล้วบันทึกผลทีละรอบในรายการนั้น",
+    formTitle: "สร้างรายการใหม่",
   },
 };

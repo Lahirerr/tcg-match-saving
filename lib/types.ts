@@ -15,6 +15,7 @@ export interface Match {
   date: string;
   eventName: string;
   eventCategory: EventCategory;
+  eventId?: string;
   myDeck: string;
   myDeckIds: number[];
   oppDeck: string;
@@ -23,6 +24,16 @@ export interface Match {
   order: TurnOrder;
   brick: boolean;
   notes: string;
+  createdAt: number;
+}
+
+export interface PtcgEvent {
+  id: string;
+  name: string;
+  category: EventCategory;
+  date: string;
+  myDeck: string;
+  myDeckIds: number[];
   createdAt: number;
 }
 

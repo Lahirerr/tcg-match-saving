@@ -9,9 +9,16 @@ interface LogListProps {
   byId: Map<number, Pokemon>;
   pendingDelete: Record<string, boolean>;
   onDeleteClick: (id: string) => void;
+  showEventMeta?: boolean;
 }
 
-export function LogList({ matches, byId, pendingDelete, onDeleteClick }: LogListProps) {
+export function LogList({
+  matches,
+  byId,
+  pendingDelete,
+  onDeleteClick,
+  showEventMeta = true,
+}: LogListProps) {
   if (matches.length === 0) {
     return (
       <div className="text-center py-8 px-2.5 text-[var(--app-text-muted)] text-sm">
@@ -76,8 +83,8 @@ export function LogList({ matches, byId, pendingDelete, onDeleteClick }: LogList
                       {orderLabel ? ` · ${orderLabel}` : ""}
                       {m.brick ? " · 🧱 Brick" : ""}
                     </span>
-                    {m.eventName ? <span>· {m.eventName}</span> : null}
-                    {m.eventCategory && EVENT_CATEGORY_LABELS[m.eventCategory] ? (
+                    {showEventMeta && m.eventName ? <span>· {m.eventName}</span> : null}
+                    {showEventMeta && m.eventCategory && EVENT_CATEGORY_LABELS[m.eventCategory] ? (
                       <span className="inline-flex items-center gap-1 border border-[var(--app-border)] bg-[var(--app-surface-2)] rounded-full px-2 py-0.5 font-semibold text-[11px]">
                         <span
                           className={`inline-block w-3 h-3 rounded-full border border-black/20 ${EVENT_CATEGORY_ICON_CLASS[m.eventCategory]}`}

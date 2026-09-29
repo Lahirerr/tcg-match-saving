@@ -2,9 +2,9 @@
 
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { DeckPickerField } from "@/components/deck-picker-field";
 import { MAX_PER_SIDE } from "@/lib/constants";
 import type { MatchResult, Pokemon, TurnOrder } from "@/lib/types";
@@ -15,17 +15,11 @@ const fieldInputCls =
 const pillLabelCls =
   "inline-flex items-center px-4 py-2.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] text-sm text-[var(--app-text)] cursor-pointer select-none";
 
-interface MatchFormProps {
-  formTitle: string;
-  date: string;
-  onDateChange: (v: string) => void;
-  mineSelection: Pokemon[];
+interface RoundFormProps {
   oppSelection: Pokemon[];
-  onOpenPicker: (ctx: "mine" | "opp") => void;
-  onRemovePokemon: (ctx: "mine" | "opp", id: number) => void;
+  onOpenPicker: () => void;
+  onRemovePokemon: (id: number) => void;
   pokemonLoading: boolean;
-  mineSuffix: string;
-  onMineSuffixChange: (v: string) => void;
   oppSuffix: string;
   onOppSuffixChange: (v: string) => void;
   result: MatchResult;
@@ -39,17 +33,11 @@ interface MatchFormProps {
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 }
 
-export function MatchForm({
-  formTitle,
-  date,
-  onDateChange,
-  mineSelection,
+export function RoundForm({
   oppSelection,
   onOpenPicker,
   onRemovePokemon,
   pokemonLoading,
-  mineSuffix,
-  onMineSuffixChange,
   oppSuffix,
   onOppSuffixChange,
   result,
@@ -61,72 +49,30 @@ export function MatchForm({
   notes,
   onNotesChange,
   onSubmit,
-}: MatchFormProps) {
-  const canSubmit = mineSelection.length > 0 && oppSelection.length > 0;
+}: RoundFormProps) {
+  const canSubmit = oppSelection.length > 0;
 
   return (
     <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px] mb-6">
-      <h2 className="font-display text-[19px] font-semibold mb-4">{formTitle}</h2>
+      <h2 className="font-display text-[19px] font-semibold mb-4">บันทึกรอบใหม่</h2>
       <form onSubmit={onSubmit}>
-        <div className="grid grid-cols-1 gap-3.5 mb-3.5">
-          <div>
-            <Label htmlFor="f_date" className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">
-              วันที่
-            </Label>
-            <Input
-              id="f_date"
-              type="date"
-              required
-              value={date}
-              onChange={(e) => onDateChange(e.target.value)}
-              className={fieldInputCls}
-            />
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3.5">
-          <DeckPickerField
-            label="เด็คของฉัน (สูงสุด 2 ตัว)"
-            loading={pokemonLoading}
-            items={mineSelection}
-            onRemove={(id) => onRemovePokemon("mine", id)}
-            onAdd={() => onOpenPicker("mine")}
-          />
           <DeckPickerField
             label="เด็คคู่แข่ง (สูงสุด 2 ตัว)"
             loading={pokemonLoading}
             items={oppSelection}
-            onRemove={(id) => onRemovePokemon("opp", id)}
-            onAdd={() => onOpenPicker("opp")}
+            onRemove={onRemovePokemon}
+            onAdd={onOpenPicker}
           />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3.5">
           <div>
             <Label
-              htmlFor="f_mine_suffix"
-              className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5"
-            >
-              รายละเอียดเด็คของฉัน (ไม่บังคับ)
-            </Label>
-            <Input
-              id="f_mine_suffix"
-              type="text"
-              placeholder="เช่น ex, VMAX, Box"
-              value={mineSuffix}
-              onChange={(e) => onMineSuffixChange(e.target.value)}
-              className={fieldInputCls}
-            />
-          </div>
-          <div>
-            <Label
-              htmlFor="f_opp_suffix"
+              htmlFor="rf_opp_suffix"
               className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5"
             >
               รายละเอียดเด็คคู่แข่ง (ไม่บังคับ)
             </Label>
             <Input
-              id="f_opp_suffix"
+              id="rf_opp_suffix"
               type="text"
               placeholder="เช่น ex, VMAX, Box"
               value={oppSuffix}
@@ -254,11 +200,11 @@ export function MatchForm({
 
         <div className="grid grid-cols-1 gap-3.5 mb-3.5">
           <div>
-            <Label htmlFor="f_notes" className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">
+            <Label htmlFor="rf_notes" className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">
               หมายเหตุ (ไม่บังคับ)
             </Label>
             <Textarea
-              id="f_notes"
+              id="rf_notes"
               placeholder="เช่น เปิดมือช้า, โดนล็อกพลังงานตั้งแต่ต้นเกม"
               value={notes}
               onChange={(e) => onNotesChange(e.target.value)}
@@ -268,15 +214,13 @@ export function MatchForm({
         </div>
 
         <p className="text-[var(--app-loss)] text-[12.5px] min-h-[1em] mb-1">
-          {!canSubmit
-            ? `เลือกโปเกมอนอย่างน้อย 1 ตัวของทั้งสองฝั่งก่อนบันทึก (สูงสุด ${MAX_PER_SIDE} ตัวต่อฝั่ง)`
-            : ""}
+          {!canSubmit ? `เลือกโปเกมอนอย่างน้อย 1 ตัวของเด็คคู่แข่งก่อนบันทึก (สูงสุด ${MAX_PER_SIDE} ตัว)` : ""}
         </p>
         <Button
           type="submit"
           className="border-0 bg-[var(--app-accent)] text-white font-semibold text-[15px] px-[22px] py-[11px] h-auto rounded-[9px] cursor-pointer hover:bg-[var(--app-accent)] hover:brightness-110"
         >
-          บันทึกแมทช์
+          บันทึกรอบ
         </Button>
       </form>
     </section>
