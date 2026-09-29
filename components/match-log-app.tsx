@@ -14,8 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MODE_COPY } from "@/lib/constants";
-import { todayISO, uid, uniqueSorted } from "@/lib/format";
+import { EVENT_CATEGORY_LABELS, MODE_COPY } from "@/lib/constants";
+import { formatDateLabel, todayISO, uid, uniqueSorted } from "@/lib/format";
 import { fetchPokemonData } from "@/lib/pokemon";
 import { loadMatches, saveMatches } from "@/lib/storage";
 import { computeMatchupStats, computeOverallStats } from "@/lib/stats";
@@ -30,6 +30,8 @@ import type {
 } from "@/lib/types";
 
 const DECK_FILTER_ALL = "__all__";
+const HISTORY_FILTER_ALL = "__all__";
+const EVENT_CATEGORY_KEYS = Object.keys(EVENT_CATEGORY_LABELS) as Exclude<EventCategory, "">[];
 
 export function MatchLogApp() {
   const [mode, setMode] = useState<MatchMode>("live");
@@ -52,6 +54,7 @@ export function MatchLogApp() {
   const [notes, setNotes] = useState("");
 
   const [filterValue, setFilterValue] = useState("");
+  const [historyFilterValue, setHistoryFilterValue] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Record<string, boolean>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -73,6 +76,7 @@ export function MatchLogApp() {
   function switchMode(next: MatchMode) {
     setMode(next);
     setFilterValue("");
+    setHistoryFilterValue("");
     if (next === "live") {
       setEventName("");
       setEventCategory("");
@@ -189,6 +193,16 @@ export function MatchLogApp() {
   );
   const matchupRows = useMemo(() => computeMatchupStats(filtered), [filtered]);
 
+  const historyDateOptions = useMemo(
+    () => uniqueSorted(modeMatches.map((m) => m.date)).sort((a, b) => b.localeCompare(a)),
+    [modeMatches]
+  );
+  const historyFiltered = useMemo(() => {
+    if (!historyFilterValue) return filtered;
+    if (mode === "live") return filtered.filter((m) => m.date === historyFilterValue);
+    return filtered.filter((m) => m.eventCategory === historyFilterValue);
+  }, [filtered, historyFilterValue, mode]);
+
   const copy = MODE_COPY[mode];
 
   return (
@@ -260,9 +274,33 @@ export function MatchLogApp() {
       <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px]">
         <div className="flex items-center justify-between flex-wrap gap-2.5 mb-3.5">
           <h2 className="font-display text-[19px] font-semibold">ประวัติการแข่งขัน</h2>
+          <Select
+            value={historyFilterValue === "" ? HISTORY_FILTER_ALL : historyFilterValue}
+            onValueChange={(v) => setHistoryFilterValue(!v || v === HISTORY_FILTER_ALL ? "" : v)}
+          >
+            <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={HISTORY_FILTER_ALL}>
+                {mode === "live" ? "ทุกวัน" : "ทุกหมวดหมู่"}
+              </SelectItem>
+              {mode === "live"
+                ? historyDateOptions.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {formatDateLabel(d)}
+                    </SelectItem>
+                  ))
+                : EVENT_CATEGORY_KEYS.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {EVENT_CATEGORY_LABELS[cat]}
+                    </SelectItem>
+                  ))}
+            </SelectContent>
+          </Select>
         </div>
         <LogList
-          matches={filtered}
+          matches={historyFiltered}
           byId={pokemonById}
           pendingDelete={pendingDelete}
           onDeleteClick={handleDeleteClick}
