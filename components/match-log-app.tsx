@@ -205,9 +205,12 @@ export function MatchLogApp() {
     [modeMatches]
   );
   const historyFiltered = useMemo(() => {
-    if (!historyFilterValue) return filtered;
-    if (mode === "live") return filtered.filter((m) => m.date === historyFilterValue);
-    return filtered.filter((m) => m.eventCategory === historyFilterValue);
+    const base = !historyFilterValue
+      ? filtered
+      : mode === "live"
+        ? filtered.filter((m) => m.date === historyFilterValue)
+        : filtered.filter((m) => m.eventCategory === historyFilterValue);
+    return base.slice().sort((a, b) => b.createdAt - a.createdAt);
   }, [filtered, historyFilterValue, mode]);
 
   const pageCount = Math.max(1, Math.ceil(historyFiltered.length / pageSize));
