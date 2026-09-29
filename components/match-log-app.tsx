@@ -6,6 +6,7 @@ import { MatchForm } from "@/components/match-form";
 import { PokemonPickerDialog } from "@/components/pokemon-picker-dialog";
 import { MatchupTable } from "@/components/matchup-table";
 import { LogList } from "@/components/log-list";
+import { Pagination } from "@/components/pagination";
 import { StatChips } from "@/components/stat-chips";
 import {
   Select,
@@ -32,6 +33,8 @@ import type {
 const DECK_FILTER_ALL = "__all__";
 const HISTORY_FILTER_ALL = "__all__";
 const EVENT_CATEGORY_KEYS = Object.keys(EVENT_CATEGORY_LABELS) as Exclude<EventCategory, "">[];
+const PAGE_SIZE_OPTIONS = [5, 10, 15, 20];
+const DEFAULT_PAGE_SIZE = 10;
 
 export function MatchLogApp() {
   const [mode, setMode] = useState<MatchMode>("live");
@@ -55,6 +58,8 @@ export function MatchLogApp() {
 
   const [filterValue, setFilterValue] = useState("");
   const [historyFilterValue, setHistoryFilterValue] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [pendingDelete, setPendingDelete] = useState<Record<string, boolean>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -77,6 +82,7 @@ export function MatchLogApp() {
     setMode(next);
     setFilterValue("");
     setHistoryFilterValue("");
+    setPage(1);
     if (next === "live") {
       setEventName("");
       setEventCategory("");
@@ -182,6 +188,7 @@ export function MatchLogApp() {
     setNotes("");
     setResult("W");
     setOrder("");
+    setPage(1);
   }
 
   const modeMatches = useMemo(() => matches.filter((m) => (m.mode || "live") === mode), [matches, mode]);
@@ -202,6 +209,13 @@ export function MatchLogApp() {
     if (mode === "live") return filtered.filter((m) => m.date === historyFilterValue);
     return filtered.filter((m) => m.eventCategory === historyFilterValue);
   }, [filtered, historyFilterValue, mode]);
+
+  const pageCount = Math.max(1, Math.ceil(historyFiltered.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const paginatedHistory = useMemo(
+    () => historyFiltered.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [historyFiltered, currentPage, pageSize]
+  );
 
   const copy = MODE_COPY[mode];
 
@@ -253,7 +267,10 @@ export function MatchLogApp() {
           <h2 className="font-display text-[19px] font-semibold">สรุปคู่ต่อสู้</h2>
           <Select
             value={filterValue === "" ? DECK_FILTER_ALL : filterValue}
-            onValueChange={(v) => setFilterValue(!v || v === DECK_FILTER_ALL ? "" : v)}
+            onValueChange={(v) => {
+              setFilterValue(!v || v === DECK_FILTER_ALL ? "" : v);
+              setPage(1);
+            }}
           >
             <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
               <SelectValue />
@@ -276,7 +293,10 @@ export function MatchLogApp() {
           <h2 className="font-display text-[19px] font-semibold">ประวัติการแข่งขัน</h2>
           <Select
             value={historyFilterValue === "" ? HISTORY_FILTER_ALL : historyFilterValue}
-            onValueChange={(v) => setHistoryFilterValue(!v || v === HISTORY_FILTER_ALL ? "" : v)}
+            onValueChange={(v) => {
+              setHistoryFilterValue(!v || v === HISTORY_FILTER_ALL ? "" : v);
+              setPage(1);
+            }}
           >
             <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
               <SelectValue />
@@ -300,10 +320,22 @@ export function MatchLogApp() {
           </Select>
         </div>
         <LogList
-          matches={historyFiltered}
+          matches={paginatedHistory}
           byId={pokemonById}
           pendingDelete={pendingDelete}
           onDeleteClick={handleDeleteClick}
+        />
+        <Pagination
+          page={currentPage}
+          pageCount={pageCount}
+          pageSize={pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          totalItems={historyFiltered.length}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
         />
       </section>
 
