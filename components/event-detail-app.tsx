@@ -10,7 +10,7 @@ import { Pagination } from "@/components/pagination";
 import { PokemonPickerDialog } from "@/components/pokemon-picker-dialog";
 import { RoundForm } from "@/components/round-form";
 import { StatChips } from "@/components/stat-chips";
-import { EVENT_CATEGORY_ICON_CLASS, EVENT_CATEGORY_LABELS, MAX_PER_SIDE } from "@/lib/constants";
+import { EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS, MAX_PER_SIDE } from "@/lib/constants";
 import { formatDateLabel, uid } from "@/lib/format";
 import { fetchPokemonData } from "@/lib/pokemon";
 import { loadMatchesWithMigration, saveEvents, saveMatches } from "@/lib/storage";
@@ -208,8 +208,10 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
             </p>
             {event.category && EVENT_CATEGORY_LABELS[event.category] ? (
               <span className="inline-flex items-center gap-1 border border-[var(--app-border)] bg-[var(--app-surface-2)] rounded-full px-2.5 py-1 font-semibold text-[12px]">
-                <span
-                  className={`inline-block w-3 h-3 rounded-full border border-black/20 ${EVENT_CATEGORY_ICON_CLASS[event.category]}`}
+                <img
+                  src={EVENT_CATEGORY_ICON_SRC[event.category]}
+                  alt=""
+                  className="w-3.5 h-3.5 object-contain"
                 />
                 {EVENT_CATEGORY_LABELS[event.category]}
               </span>

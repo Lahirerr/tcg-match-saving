@@ -1,5 +1,5 @@
 import { DeckSprites } from "@/components/deck-sprites";
-import { EVENT_CATEGORY_ICON_CLASS, EVENT_CATEGORY_LABELS } from "@/lib/constants";
+import { EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS } from "@/lib/constants";
 import { formatDateLabel } from "@/lib/format";
 import { idsForDeck } from "@/lib/stats";
 import type { Match, Pokemon } from "@/lib/types";
@@ -86,8 +86,10 @@ export function LogList({
                     {showEventMeta && m.eventName ? <span>· {m.eventName}</span> : null}
                     {showEventMeta && m.eventCategory && EVENT_CATEGORY_LABELS[m.eventCategory] ? (
                       <span className="inline-flex items-center gap-1 border border-[var(--app-border)] bg-[var(--app-surface-2)] rounded-full px-2 py-0.5 font-semibold text-[11px]">
-                        <span
-                          className={`inline-block w-3 h-3 rounded-full border border-black/20 ${EVENT_CATEGORY_ICON_CLASS[m.eventCategory]}`}
+                        <img
+                          src={EVENT_CATEGORY_ICON_SRC[m.eventCategory]}
+                          alt=""
+                          className="w-3.5 h-3.5 object-contain"
                         />
                         {EVENT_CATEGORY_LABELS[m.eventCategory]}
                       </span>

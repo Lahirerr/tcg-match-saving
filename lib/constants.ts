@@ -12,12 +12,12 @@ export const EVENT_CATEGORY_LABELS: Record<Exclude<EventCategory, "">, string> =
   mbl: "MBL",
 };
 
-export const EVENT_CATEGORY_ICON_CLASS: Record<Exclude<EventCategory, "">, string> = {
-  gym: "bg-[linear-gradient(to_bottom,#e64545_0%,#e64545_46%,#222_46%,#222_54%,#fdfdfd_54%,#fdfdfd_100%)]",
-  gbl: "bg-[linear-gradient(to_bottom,#3a7bd5_0%,#3a7bd5_46%,#222_46%,#222_54%,#e4ebf7_54%,#e4ebf7_100%)]",
-  ubl: "bg-[linear-gradient(to_bottom,#2b2b2b_0%,#2b2b2b_46%,#222_46%,#222_54%,#f2c94c_54%,#f2c94c_100%)]",
-  pbl: "bg-[linear-gradient(to_bottom,#fdfdfd_0%,#fdfdfd_30%,#e64545_30%,#e64545_42%,#222_42%,#222_46%,#fdfdfd_46%,#fdfdfd_100%)]",
-  mbl: "bg-[radial-gradient(circle_at_58%_34%,#f2a6e8_0_17%,transparent_18%),linear-gradient(to_bottom,#7c4fd9_0%,#7c4fd9_46%,#222_46%,#222_54%,#ece2fb_54%,#ece2fb_100%)]",
+export const EVENT_CATEGORY_ICON_SRC: Record<Exclude<EventCategory, "">, string> = {
+  gym: "/balls/pokeball.png",
+  gbl: "/balls/greatball.png",
+  ubl: "/balls/ultraball.png",
+  pbl: "/balls/premierball.png",
+  mbl: "/balls/masterball.png",
 };
 
 export const EVENT_CATEGORY_PEER_CLASS: Record<Exclude<EventCategory, "">, string> = {
