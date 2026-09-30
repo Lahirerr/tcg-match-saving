@@ -42,6 +42,7 @@ export interface PtcgEvent {
   date: string;
   myDeck: string;
   myDeckIds: number[];
+  aceSpec?: string;
   createdAt: number;
 }
 

@@ -12,7 +12,7 @@ import { PokemonPickerDialog } from "@/components/pokemon-picker-dialog";
 import { RoundForm } from "@/components/round-form";
 import { StatChips } from "@/components/stat-chips";
 import { Input } from "@/components/ui/input";
-import { EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS, MAX_PER_SIDE } from "@/lib/constants";
+import { ACE_SPEC_BY_KEY, EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS, MAX_PER_SIDE } from "@/lib/constants";
 import { formatDateLabel, nowTimestamp, uid } from "@/lib/format";
 import { fetchPokemonData } from "@/lib/pokemon";
 import { loadMatchesWithMigration, saveEvents, saveMatches } from "@/lib/storage";
@@ -45,7 +45,6 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
   const [result, setResult] = useState<MatchResult>("W");
   const [order, setOrder] = useState<TurnOrder>("");
   const [brick, setBrick] = useState(false);
-  const [aceSpec, setAceSpec] = useState("");
   const [notes, setNotes] = useState("");
 
   const { presets: deckPresets, addPreset: addDeckPreset, removePreset: removeDeckPreset } =
@@ -139,7 +138,7 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
       result,
       order,
       brick,
-      aceSpec,
+      aceSpec: event.aceSpec || "",
       notes: notes.trim(),
       createdAt: nowTimestamp(),
     };
@@ -148,7 +147,6 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
     setOppSelection([]);
     setOppSuffix("");
     setBrick(false);
-    setAceSpec("");
     setNotes("");
     setResult("W");
     setOrder("");
@@ -251,6 +249,16 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
               <DeckSprites ids={event.myDeckIds} byId={pokemonById} />
               {event.myDeck}
             </span>
+            {event.aceSpec && ACE_SPEC_BY_KEY[event.aceSpec] ? (
+              <span className="inline-flex items-center gap-1 border border-[var(--app-border)] bg-[var(--app-surface-2)] rounded-full px-2 py-0.5 font-semibold text-[11px]">
+                <img
+                  src={ACE_SPEC_BY_KEY[event.aceSpec].icon}
+                  alt=""
+                  className="w-3.5 h-3.5 object-contain"
+                />
+                {ACE_SPEC_BY_KEY[event.aceSpec].label}
+              </span>
+            ) : null}
           </p>
         </div>
         <StatChips stats={stats} />
@@ -277,8 +285,6 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
         onOrderChange={setOrder}
         brick={brick}
         onBrickToggle={() => setBrick((v) => !v)}
-        aceSpec={aceSpec}
-        onAceSpecChange={setAceSpec}
         notes={notes}
         onNotesChange={setNotes}
         onSubmit={handleAddRound}

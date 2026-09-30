@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { AceSpecPicker } from "@/components/ace-spec-picker";
 import { BrickToggle } from "@/components/brick-toggle";
 import { DeckPickerField } from "@/components/deck-picker-field";
 import { ResultPicker } from "@/components/result-picker";
@@ -34,8 +33,6 @@ interface RoundFormProps {
   onOrderChange: (v: TurnOrder) => void;
   brick: boolean;
   onBrickToggle: () => void;
-  aceSpec: string;
-  onAceSpecChange: (v: string) => void;
   notes: string;
   onNotesChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -59,8 +56,6 @@ export function RoundForm({
   onOrderChange,
   brick,
   onBrickToggle,
-  aceSpec,
-  onAceSpecChange,
   notes,
   onNotesChange,
   onSubmit,
@@ -109,10 +104,6 @@ export function RoundForm({
 
         <div className="grid grid-cols-1 gap-3.5 mb-3.5">
           <BrickToggle value={brick} onToggle={onBrickToggle} />
-        </div>
-
-        <div className="grid grid-cols-1 gap-3.5 mb-3.5">
-          <AceSpecPicker value={aceSpec} onChange={onAceSpecChange} />
         </div>
 
         <div className="grid grid-cols-1 gap-3.5 mb-3.5">

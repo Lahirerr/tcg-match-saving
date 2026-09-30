@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DeckSprites } from "@/components/deck-sprites";
-import { EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS } from "@/lib/constants";
+import { ACE_SPEC_BY_KEY, EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS } from "@/lib/constants";
 import { formatDateLabel } from "@/lib/format";
 import type { OverallStats, Pokemon, PtcgEvent } from "@/lib/types";
 
@@ -40,6 +40,16 @@ export function EventCard({ event, byId, stats }: EventCardProps) {
               <DeckSprites ids={event.myDeckIds} byId={byId} />
               {event.myDeck}
             </span>
+            {event.aceSpec && ACE_SPEC_BY_KEY[event.aceSpec] ? (
+              <span className="inline-flex items-center gap-1 border border-[var(--app-border)] bg-[var(--app-surface-2)] rounded-full px-2 py-0.5 font-semibold text-[11px]">
+                <img
+                  src={ACE_SPEC_BY_KEY[event.aceSpec].icon}
+                  alt=""
+                  className="w-3.5 h-3.5 object-contain"
+                />
+                {ACE_SPEC_BY_KEY[event.aceSpec].label}
+              </span>
+            ) : null}
           </div>
         </div>
         <div className="text-right shrink-0">

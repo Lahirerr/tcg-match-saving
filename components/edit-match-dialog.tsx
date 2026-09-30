@@ -107,7 +107,7 @@ export function EditMatchDialog({
       result,
       order,
       brick,
-      aceSpec,
+      aceSpec: match.mode === "live" ? aceSpec : match.aceSpec,
       notes: notes.trim(),
     });
   }
@@ -180,7 +180,9 @@ export function EditMatchDialog({
 
             <BrickToggle value={brick} onToggle={() => setBrick((v) => !v)} />
 
-            <AceSpecPicker value={aceSpec} onChange={setAceSpec} name="em_ace_spec" />
+            {match?.mode === "live" ? (
+              <AceSpecPicker value={aceSpec} onChange={setAceSpec} name="em_ace_spec" />
+            ) : null}
 
             <div>
               <Label htmlFor="em_notes" className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">

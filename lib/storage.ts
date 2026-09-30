@@ -107,6 +107,7 @@ export function loadMatchesWithMigration(): { matches: Match[]; events: PtcgEven
       date: first.date,
       myDeck: first.myDeck,
       myDeckIds: first.myDeckIds,
+      aceSpec: first.aceSpec || "",
       createdAt: first.createdAt,
     });
     group.forEach((m) => eventIdByMatchId.set(m.id, eventId));

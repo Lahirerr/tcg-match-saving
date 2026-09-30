@@ -49,6 +49,7 @@ export function OfflineHome({
   const [eventCategory, setEventCategory] = useState<EventCategory>("");
   const [mineSuffix, setMineSuffix] = useState("");
   const [mineSelection, setMineSelection] = useState<Pokemon[]>([]);
+  const [aceSpec, setAceSpec] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
 
@@ -96,6 +97,7 @@ export function OfflineHome({
       date: date || todayISO(),
       myDeck: deckName,
       myDeckIds: mineSelection.map((p) => p.id),
+      aceSpec,
       createdAt: nowTimestamp(),
     };
 
@@ -146,6 +148,8 @@ export function OfflineHome({
         onDeleteDeckPreset={removeDeckPreset}
         mineSuffix={mineSuffix}
         onMineSuffixChange={setMineSuffix}
+        aceSpec={aceSpec}
+        onAceSpecChange={setAceSpec}
         onSubmit={handleCreateEvent}
       />
 

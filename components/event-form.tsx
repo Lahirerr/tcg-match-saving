@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AceSpecPicker } from "@/components/ace-spec-picker";
 import { DeckPickerField } from "@/components/deck-picker-field";
 import { EventCategoryPicker } from "@/components/event-category-picker";
 import type { DeckPreset, EventCategory, Pokemon } from "@/lib/types";
@@ -30,6 +31,8 @@ interface EventFormProps {
   onDeleteDeckPreset: (id: string) => void;
   mineSuffix: string;
   onMineSuffixChange: (v: string) => void;
+  aceSpec: string;
+  onAceSpecChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
 }
 
@@ -52,6 +55,8 @@ export function EventForm({
   onDeleteDeckPreset,
   mineSuffix,
   onMineSuffixChange,
+  aceSpec,
+  onAceSpecChange,
   onSubmit,
 }: EventFormProps) {
   const canSubmit = mineSelection.length > 0;
@@ -125,6 +130,10 @@ export function EventForm({
               className={fieldInputCls}
             />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3.5 mb-3.5">
+          <AceSpecPicker value={aceSpec} onChange={onAceSpecChange} />
         </div>
 
         <p className="text-[var(--app-loss)] text-[12.5px] min-h-[1em] mb-1">
