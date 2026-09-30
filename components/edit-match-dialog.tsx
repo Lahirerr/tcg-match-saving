@@ -180,7 +180,7 @@ export function EditMatchDialog({
 
             <BrickToggle value={brick} onToggle={() => setBrick((v) => !v)} />
 
-            <AceSpecPicker value={aceSpec} onChange={setAceSpec} />
+            <AceSpecPicker value={aceSpec} onChange={setAceSpec} name="em_ace_spec" />
 
             <div>
               <Label htmlFor="em_notes" className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">
