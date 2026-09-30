@@ -14,9 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EVENT_CATEGORY_LABELS, MAX_PER_SIDE } from "@/lib/constants";
-import { todayISO, uid } from "@/lib/format";
+import { nowTimestamp, todayISO, uid } from "@/lib/format";
 import { computeOverallStats } from "@/lib/stats";
 import { useDeckPresets } from "@/lib/use-deck-presets";
+import { usePagination } from "@/lib/use-pagination";
 import type { DeckPreset, EventCategory, Match, Pokemon, PtcgEvent } from "@/lib/types";
 
 const CATEGORY_FILTER_ALL = "__all__";
@@ -55,8 +56,6 @@ export function OfflineHome({
     useDeckPresets();
 
   const [categoryFilter, setCategoryFilter] = useState<EventCategory | "">("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   function toggleMine(pokemon: Pokemon) {
     setMineSelection((prev) => {
@@ -97,7 +96,7 @@ export function OfflineHome({
       date: date || todayISO(),
       myDeck: deckName,
       myDeckIds: mineSelection.map((p) => p.id),
-      createdAt: Date.now(),
+      createdAt: nowTimestamp(),
     };
 
     onCreateEvent(newEvent);
@@ -121,12 +120,7 @@ export function OfflineHome({
     [sortedEvents, categoryFilter]
   );
 
-  const pageCount = Math.max(1, Math.ceil(filteredEvents.length / pageSize));
-  const currentPage = Math.min(page, pageCount);
-  const paginatedEvents = useMemo(
-    () => filteredEvents.slice((currentPage - 1) * pageSize, currentPage * pageSize),
-    [filteredEvents, currentPage, pageSize]
-  );
+  const eventsPagination = usePagination(filteredEvents, DEFAULT_PAGE_SIZE);
 
   return (
     <>
@@ -162,7 +156,7 @@ export function OfflineHome({
             value={categoryFilter === "" ? CATEGORY_FILTER_ALL : categoryFilter}
             onValueChange={(v) => {
               setCategoryFilter(!v || v === CATEGORY_FILTER_ALL ? "" : (v as EventCategory));
-              setPage(1);
+              eventsPagination.resetPage();
             }}
           >
             <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
@@ -179,13 +173,13 @@ export function OfflineHome({
           </Select>
         </div>
 
-        {paginatedEvents.length === 0 ? (
+        {eventsPagination.items.length === 0 ? (
           <div className="text-center py-8 px-2.5 text-[var(--app-text-muted)] text-sm">
             ยังไม่มีรายการที่บันทึกไว้ — สร้างรายการแรกของคุณด้วยฟอร์มด้านบน
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {paginatedEvents.map((ev) => (
+            {eventsPagination.items.map((ev) => (
               <EventCard
                 key={ev.id}
                 event={ev}
@@ -196,16 +190,13 @@ export function OfflineHome({
           </div>
         )}
         <Pagination
-          page={currentPage}
-          pageCount={pageCount}
-          pageSize={pageSize}
+          page={eventsPagination.page}
+          pageCount={eventsPagination.pageCount}
+          pageSize={eventsPagination.pageSize}
           pageSizeOptions={PAGE_SIZE_OPTIONS}
-          totalItems={filteredEvents.length}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
+          totalItems={eventsPagination.totalItems}
+          onPageChange={eventsPagination.setPage}
+          onPageSizeChange={eventsPagination.setPageSize}
         />
       </section>
 

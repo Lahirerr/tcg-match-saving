@@ -4,18 +4,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DeckSprites } from "@/components/deck-sprites";
+import { EditMatchDialog } from "@/components/edit-match-dialog";
 import { LogList } from "@/components/log-list";
 import { MatchupTable } from "@/components/matchup-table";
 import { Pagination } from "@/components/pagination";
 import { PokemonPickerDialog } from "@/components/pokemon-picker-dialog";
 import { RoundForm } from "@/components/round-form";
 import { StatChips } from "@/components/stat-chips";
+import { Input } from "@/components/ui/input";
 import { EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS, MAX_PER_SIDE } from "@/lib/constants";
-import { formatDateLabel, uid } from "@/lib/format";
+import { formatDateLabel, nowTimestamp, uid } from "@/lib/format";
 import { fetchPokemonData } from "@/lib/pokemon";
 import { loadMatchesWithMigration, saveEvents, saveMatches } from "@/lib/storage";
 import { computeMatchupStats, computeOverallStats } from "@/lib/stats";
 import { useDeckPresets } from "@/lib/use-deck-presets";
+import { usePagination } from "@/lib/use-pagination";
 import type { DeckPreset, Match, MatchResult, Pokemon, PtcgEvent, TurnOrder } from "@/lib/types";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 15, 20];
@@ -48,12 +51,12 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
   const { presets: deckPresets, addPreset: addDeckPreset, removePreset: removeDeckPreset } =
     useDeckPresets();
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [matchupSearch, setMatchupSearch] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Record<string, boolean>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState(false);
   const pendingDeleteEventTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
 
   useEffect(() => {
     const data = loadMatchesWithMigration();
@@ -73,17 +76,17 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
   const eventMatches = useMemo(() => matches.filter((m) => m.eventId === eventId), [matches, eventId]);
   const stats = useMemo(() => computeOverallStats(eventMatches), [eventMatches]);
   const matchupRows = useMemo(() => computeMatchupStats(eventMatches), [eventMatches]);
+  const matchupFiltered = useMemo(() => {
+    const q = matchupSearch.trim().toLowerCase();
+    return q ? matchupRows.filter((r) => r.deck.toLowerCase().includes(q)) : matchupRows;
+  }, [matchupRows, matchupSearch]);
+  const matchupPagination = usePagination(matchupFiltered, DEFAULT_PAGE_SIZE);
 
   const sortedHistory = useMemo(
     () => eventMatches.slice().sort((a, b) => b.createdAt - a.createdAt),
     [eventMatches]
   );
-  const pageCount = Math.max(1, Math.ceil(sortedHistory.length / pageSize));
-  const currentPage = Math.min(page, pageCount);
-  const paginatedHistory = useMemo(
-    () => sortedHistory.slice((currentPage - 1) * pageSize, currentPage * pageSize),
-    [sortedHistory, currentPage, pageSize]
-  );
+  const historyPagination = usePagination(sortedHistory, DEFAULT_PAGE_SIZE);
 
   function toggleOpp(pokemon: Pokemon) {
     setOppSelection((prev) => {
@@ -138,7 +141,7 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
       brick,
       aceSpec,
       notes: notes.trim(),
-      createdAt: Date.now(),
+      createdAt: nowTimestamp(),
     };
 
     persistMatches([...matches, newMatch]);
@@ -149,7 +152,12 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
     setNotes("");
     setResult("W");
     setOrder("");
-    setPage(1);
+    historyPagination.resetPage();
+  }
+
+  function handleEditSave(updated: Match) {
+    persistMatches(matches.map((m) => (m.id === updated.id ? updated : m)));
+    setEditingMatch(null);
   }
 
   function handleDeleteRound(id: string) {
@@ -278,29 +286,46 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
 
       <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px] mb-6">
         <h2 className="font-display text-[19px] font-semibold mb-3.5">สรุปคู่ต่อสู้</h2>
-        <MatchupTable rows={matchupRows} byId={pokemonById} />
+        <Input
+          type="text"
+          placeholder="ค้นหาเด็คคู่แข่ง…"
+          value={matchupSearch}
+          onChange={(e) => {
+            setMatchupSearch(e.target.value);
+            matchupPagination.resetPage();
+          }}
+          className="w-full bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2.5 h-auto text-[var(--app-text)] text-[14.5px] focus-visible:ring-[var(--app-accent)] mb-3"
+        />
+        <MatchupTable rows={matchupPagination.items} byId={pokemonById} />
+        <Pagination
+          page={matchupPagination.page}
+          pageCount={matchupPagination.pageCount}
+          pageSize={matchupPagination.pageSize}
+          pageSizeOptions={PAGE_SIZE_OPTIONS}
+          totalItems={matchupPagination.totalItems}
+          onPageChange={matchupPagination.setPage}
+          onPageSizeChange={matchupPagination.setPageSize}
+        />
       </section>
 
       <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px]">
         <h2 className="font-display text-[19px] font-semibold mb-3.5">ประวัติรอบการแข่งขัน</h2>
         <LogList
-          matches={paginatedHistory}
+          matches={historyPagination.items}
           byId={pokemonById}
           pendingDelete={pendingDelete}
           onDeleteClick={handleDeleteRound}
+          onEditClick={setEditingMatch}
           showEventMeta={false}
         />
         <Pagination
-          page={currentPage}
-          pageCount={pageCount}
-          pageSize={pageSize}
+          page={historyPagination.page}
+          pageCount={historyPagination.pageCount}
+          pageSize={historyPagination.pageSize}
           pageSizeOptions={PAGE_SIZE_OPTIONS}
-          totalItems={sortedHistory.length}
-          onPageChange={setPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
-            setPage(1);
-          }}
+          totalItems={historyPagination.totalItems}
+          onPageChange={historyPagination.setPage}
+          onPageSizeChange={historyPagination.setPageSize}
         />
       </section>
 
@@ -330,6 +355,20 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
         onOpenChange={(open) => {
           if (!open) setPickerOpen(false);
         }}
+      />
+
+      <EditMatchDialog
+        match={editingMatch}
+        onOpenChange={(open) => {
+          if (!open) setEditingMatch(null);
+        }}
+        onSave={handleEditSave}
+        pokemonData={pokemonData}
+        pokemonById={pokemonById}
+        pokemonLoading={pokemonLoading}
+        deckPresets={deckPresets}
+        onAddDeckPreset={addDeckPreset}
+        onDeleteDeckPreset={removeDeckPreset}
       />
     </div>
   );

@@ -9,6 +9,7 @@ interface LogListProps {
   byId: Map<number, Pokemon>;
   pendingDelete: Record<string, boolean>;
   onDeleteClick: (id: string) => void;
+  onEditClick: (match: Match) => void;
   showEventMeta?: boolean;
 }
 
@@ -17,6 +18,7 @@ export function LogList({
   byId,
   pendingDelete,
   onDeleteClick,
+  onEditClick,
   showEventMeta = true,
 }: LogListProps) {
   if (matches.length === 0) {
@@ -106,18 +108,27 @@ export function LogList({
                     <div className="text-[13px] text-[var(--app-text-muted)] mt-1">{m.notes}</div>
                   ) : null}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onDeleteClick(m.id)}
-                  className={
-                    "shrink-0 border text-[12.5px] px-2.5 py-1.5 rounded-lg cursor-pointer " +
-                    (isConfirming
-                      ? "border-[var(--app-loss)] text-[var(--app-loss)] font-semibold"
-                      : "border-[var(--app-border)] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]")
-                  }
-                >
-                  {isConfirming ? "ยืนยันการลบ" : "ลบ"}
-                </button>
+                <div className="flex flex-col gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => onEditClick(m)}
+                    className="border border-[var(--app-border)] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)] text-[12.5px] px-2.5 py-1.5 rounded-lg cursor-pointer"
+                  >
+                    แก้ไข
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteClick(m.id)}
+                    className={
+                      "border text-[12.5px] px-2.5 py-1.5 rounded-lg cursor-pointer " +
+                      (isConfirming
+                        ? "border-[var(--app-loss)] text-[var(--app-loss)] font-semibold"
+                        : "border-[var(--app-border)] text-[var(--app-text-muted)] hover:bg-[var(--app-surface-2)]")
+                    }
+                  >
+                    {isConfirming ? "ยืนยันการลบ" : "ลบ"}
+                  </button>
+                </div>
               </div>
             );
           })}

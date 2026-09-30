@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { EditMatchDialog } from "@/components/edit-match-dialog";
 import { ModeTabs } from "@/components/mode-tabs";
 import { MatchForm } from "@/components/match-form";
 import { OfflineHome } from "@/components/offline-home";
@@ -10,6 +11,7 @@ import { MatchupTable } from "@/components/matchup-table";
 import { LogList } from "@/components/log-list";
 import { Pagination } from "@/components/pagination";
 import { StatChips } from "@/components/stat-chips";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -18,11 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { MODE_COPY } from "@/lib/constants";
-import { formatDateLabel, todayISO, uid, uniqueSorted } from "@/lib/format";
+import { formatDateLabel, nowTimestamp, todayISO, uid, uniqueSorted } from "@/lib/format";
 import { fetchPokemonData } from "@/lib/pokemon";
 import { loadMatchesWithMigration, saveEvents, saveMatches } from "@/lib/storage";
 import { computeMatchupStats, computeOverallStats } from "@/lib/stats";
 import { useDeckPresets } from "@/lib/use-deck-presets";
+import { usePagination } from "@/lib/use-pagination";
 import type {
   DeckPreset,
   Match,
@@ -64,10 +67,10 @@ export function MatchLogApp() {
 
   const [filterValue, setFilterValue] = useState("");
   const [historyFilterValue, setHistoryFilterValue] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [matchupSearch, setMatchupSearch] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Record<string, boolean>>({});
   const pendingTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
 
   useEffect(() => {
     const data = loadMatchesWithMigration();
@@ -90,7 +93,9 @@ export function MatchLogApp() {
     setMode(next);
     setFilterValue("");
     setHistoryFilterValue("");
-    setPage(1);
+    setMatchupSearch("");
+    historyPagination.resetPage();
+    matchupPagination.resetPage();
     if (next === "live") {
       setDate(todayISO());
     }
@@ -170,6 +175,7 @@ export function MatchLogApp() {
       selection.mine.map((p) => p.name).join(" & ") + (mineSuffix.trim() ? ` ${mineSuffix.trim()}` : "");
     const oppDeckName =
       selection.opp.map((p) => p.name).join(" & ") + (oppSuffix.trim() ? ` ${oppSuffix.trim()}` : "");
+    const createdAt = nowTimestamp();
 
     const newMatch: Match = {
       id: uid(),
@@ -186,7 +192,7 @@ export function MatchLogApp() {
       brick,
       aceSpec,
       notes: notes.trim(),
-      createdAt: Date.now(),
+      createdAt,
     };
 
     setMatches((prev) => {
@@ -205,7 +211,16 @@ export function MatchLogApp() {
     setNotes("");
     setResult("W");
     setOrder("");
-    setPage(1);
+    historyPagination.resetPage();
+  }
+
+  function handleEditSave(updated: Match) {
+    setMatches((prev) => {
+      const next = prev.map((m) => (m.id === updated.id ? updated : m));
+      saveMatches(next);
+      return next;
+    });
+    setEditingMatch(null);
   }
 
   function handleCreateEvent(newEvent: PtcgEvent) {
@@ -225,6 +240,11 @@ export function MatchLogApp() {
     [liveMatches, filterValue]
   );
   const matchupRows = useMemo(() => computeMatchupStats(filtered), [filtered]);
+  const matchupFiltered = useMemo(() => {
+    const q = matchupSearch.trim().toLowerCase();
+    return q ? matchupRows.filter((r) => r.deck.toLowerCase().includes(q)) : matchupRows;
+  }, [matchupRows, matchupSearch]);
+  const matchupPagination = usePagination(matchupFiltered, DEFAULT_PAGE_SIZE);
 
   const historyDateOptions = useMemo(
     () => uniqueSorted(liveMatches.map((m) => m.date)).sort((a, b) => b.localeCompare(a)),
@@ -234,13 +254,7 @@ export function MatchLogApp() {
     const base = !historyFilterValue ? filtered : filtered.filter((m) => m.date === historyFilterValue);
     return base.slice().sort((a, b) => b.createdAt - a.createdAt);
   }, [filtered, historyFilterValue]);
-
-  const pageCount = Math.max(1, Math.ceil(historyFiltered.length / pageSize));
-  const currentPage = Math.min(page, pageCount);
-  const paginatedHistory = useMemo(
-    () => historyFiltered.slice((currentPage - 1) * pageSize, currentPage * pageSize),
-    [historyFiltered, currentPage, pageSize]
-  );
+  const historyPagination = usePagination(historyFiltered, DEFAULT_PAGE_SIZE);
 
   const copy = MODE_COPY[mode];
 
@@ -307,7 +321,8 @@ export function MatchLogApp() {
                 value={filterValue === "" ? DECK_FILTER_ALL : filterValue}
                 onValueChange={(v) => {
                   setFilterValue(!v || v === DECK_FILTER_ALL ? "" : v);
-                  setPage(1);
+                  historyPagination.resetPage();
+                  matchupPagination.resetPage();
                 }}
               >
                 <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
@@ -323,7 +338,26 @@ export function MatchLogApp() {
                 </SelectContent>
               </Select>
             </div>
-            <MatchupTable rows={matchupRows} byId={pokemonById} />
+            <Input
+              type="text"
+              placeholder="ค้นหาเด็คคู่แข่ง…"
+              value={matchupSearch}
+              onChange={(e) => {
+                setMatchupSearch(e.target.value);
+                matchupPagination.resetPage();
+              }}
+              className="w-full bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2.5 h-auto text-[var(--app-text)] text-[14.5px] focus-visible:ring-[var(--app-accent)] mb-3"
+            />
+            <MatchupTable rows={matchupPagination.items} byId={pokemonById} />
+            <Pagination
+              page={matchupPagination.page}
+              pageCount={matchupPagination.pageCount}
+              pageSize={matchupPagination.pageSize}
+              pageSizeOptions={PAGE_SIZE_OPTIONS}
+              totalItems={matchupPagination.totalItems}
+              onPageChange={matchupPagination.setPage}
+              onPageSizeChange={matchupPagination.setPageSize}
+            />
           </section>
 
           <section className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-sm p-[22px]">
@@ -333,7 +367,7 @@ export function MatchLogApp() {
                 value={historyFilterValue === "" ? HISTORY_FILTER_ALL : historyFilterValue}
                 onValueChange={(v) => {
                   setHistoryFilterValue(!v || v === HISTORY_FILTER_ALL ? "" : v);
-                  setPage(1);
+                  historyPagination.resetPage();
                 }}
               >
                 <SelectTrigger className="w-auto min-w-[160px] bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2 h-auto text-[var(--app-text)] text-[14.5px]">
@@ -350,22 +384,20 @@ export function MatchLogApp() {
               </Select>
             </div>
             <LogList
-              matches={paginatedHistory}
+              matches={historyPagination.items}
               byId={pokemonById}
               pendingDelete={pendingDelete}
               onDeleteClick={handleDeleteClick}
+              onEditClick={setEditingMatch}
             />
             <Pagination
-              page={currentPage}
-              pageCount={pageCount}
-              pageSize={pageSize}
+              page={historyPagination.page}
+              pageCount={historyPagination.pageCount}
+              pageSize={historyPagination.pageSize}
               pageSizeOptions={PAGE_SIZE_OPTIONS}
-              totalItems={historyFiltered.length}
-              onPageChange={setPage}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setPage(1);
-              }}
+              totalItems={historyPagination.totalItems}
+              onPageChange={historyPagination.setPage}
+              onPageSizeChange={historyPagination.setPageSize}
             />
           </section>
 
@@ -380,6 +412,20 @@ export function MatchLogApp() {
             onOpenChange={(open) => {
               if (!open) closePicker();
             }}
+          />
+
+          <EditMatchDialog
+            match={editingMatch}
+            onOpenChange={(open) => {
+              if (!open) setEditingMatch(null);
+            }}
+            onSave={handleEditSave}
+            pokemonData={pokemonData}
+            pokemonById={pokemonById}
+            pokemonLoading={pokemonLoading}
+            deckPresets={deckPresets}
+            onAddDeckPreset={addDeckPreset}
+            onDeleteDeckPreset={removeDeckPreset}
           />
         </>
       ) : (

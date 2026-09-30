@@ -6,15 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AceSpecPicker } from "@/components/ace-spec-picker";
+import { BrickToggle } from "@/components/brick-toggle";
 import { DeckPickerField } from "@/components/deck-picker-field";
+import { ResultPicker } from "@/components/result-picker";
+import { TurnOrderPicker } from "@/components/turn-order-picker";
 import { MAX_PER_SIDE } from "@/lib/constants";
 import type { DeckPreset, MatchResult, Pokemon, TurnOrder } from "@/lib/types";
 
 const fieldInputCls =
   "w-full bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2.5 h-auto text-[var(--app-text)] text-[14.5px] focus-visible:ring-[var(--app-accent)]";
-
-const pillLabelCls =
-  "inline-flex items-center px-4 py-2.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-2)] text-sm text-[var(--app-text)] cursor-pointer select-none";
 
 interface MatchFormProps {
   formTitle: string;
@@ -162,119 +162,12 @@ export function MatchForm({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3.5">
-          <div>
-            <span className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">
-              ผลการแข่งขัน
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
-                <input
-                  type="radio"
-                  name="result"
-                  id="r_w"
-                  checked={result === "W"}
-                  onChange={() => onResultChange("W")}
-                  className="peer sr-only"
-                />
-                <label
-                  htmlFor="r_w"
-                  className={`${pillLabelCls} peer-checked:border-[var(--app-win)] peer-checked:bg-[var(--app-win-soft)] peer-checked:text-[var(--app-win)] peer-checked:font-semibold`}
-                >
-                  ชนะ
-                </label>
-              </div>
-              <div className="relative">
-                <input
-                  type="radio"
-                  name="result"
-                  id="r_l"
-                  checked={result === "L"}
-                  onChange={() => onResultChange("L")}
-                  className="peer sr-only"
-                />
-                <label
-                  htmlFor="r_l"
-                  className={`${pillLabelCls} peer-checked:border-[var(--app-loss)] peer-checked:bg-[var(--app-loss-soft)] peer-checked:text-[var(--app-loss)] peer-checked:font-semibold`}
-                >
-                  แพ้
-                </label>
-              </div>
-            </div>
-          </div>
-          <div>
-            <span className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">
-              ใครเริ่มก่อน
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
-                <input
-                  type="radio"
-                  name="order"
-                  id="o_first"
-                  checked={order === "first"}
-                  onChange={() => onOrderChange("first")}
-                  className="peer sr-only"
-                />
-                <label
-                  htmlFor="o_first"
-                  className={`${pillLabelCls} peer-checked:border-[var(--app-accent)] peer-checked:bg-[var(--app-accent-soft)] peer-checked:font-semibold`}
-                >
-                  ฉันเริ่มก่อน
-                </label>
-              </div>
-              <div className="relative">
-                <input
-                  type="radio"
-                  name="order"
-                  id="o_second"
-                  checked={order === "second"}
-                  onChange={() => onOrderChange("second")}
-                  className="peer sr-only"
-                />
-                <label
-                  htmlFor="o_second"
-                  className={`${pillLabelCls} peer-checked:border-[var(--app-accent)] peer-checked:bg-[var(--app-accent-soft)] peer-checked:font-semibold`}
-                >
-                  คู่แข่งเริ่มก่อน
-                </label>
-              </div>
-              <div className="relative">
-                <input
-                  type="radio"
-                  name="order"
-                  id="o_na"
-                  checked={order === ""}
-                  onChange={() => onOrderChange("")}
-                  className="peer sr-only"
-                />
-                <label
-                  htmlFor="o_na"
-                  className={`${pillLabelCls} peer-checked:border-[var(--app-accent)] peer-checked:bg-[var(--app-accent-soft)] peer-checked:font-semibold`}
-                >
-                  ไม่ระบุ
-                </label>
-              </div>
-            </div>
-          </div>
+          <ResultPicker value={result} onChange={onResultChange} />
+          <TurnOrderPicker value={order} onChange={onOrderChange} />
         </div>
 
         <div className="grid grid-cols-1 gap-3.5 mb-3.5">
-          <div>
-            <span className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">
-              มือเปิดเกม
-            </span>
-            <button
-              type="button"
-              aria-pressed={brick}
-              onClick={onBrickToggle}
-              className="group inline-flex items-center gap-2 border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[var(--app-text)] text-sm px-4 py-2.5 rounded-lg cursor-pointer select-none aria-[pressed=true]:border-[var(--app-accent)] aria-[pressed=true]:bg-[var(--app-accent-soft)] aria-[pressed=true]:font-semibold"
-            >
-              <span className="w-[17px] h-[17px] rounded border border-[var(--app-text-muted)] bg-[var(--app-surface)] flex items-center justify-center text-[11px] shrink-0 group-aria-[pressed=true]:bg-[var(--app-accent)] group-aria-[pressed=true]:border-[var(--app-accent)] group-aria-[pressed=true]:text-white">
-                🧱
-              </span>
-              มือนี้ Brick (เปิดมือไม่มีของ)
-            </button>
-          </div>
+          <BrickToggle value={brick} onToggle={onBrickToggle} />
         </div>
 
         <div className="grid grid-cols-1 gap-3.5 mb-3.5">

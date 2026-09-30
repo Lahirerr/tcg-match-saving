@@ -2,6 +2,10 @@ export function uid(): string {
   return "m_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
 }
 
+export function nowTimestamp(): number {
+  return Date.now();
+}
+
 export function todayISO(): string {
   const d = new Date();
   const m = String(d.getMonth() + 1).padStart(2, "0");
