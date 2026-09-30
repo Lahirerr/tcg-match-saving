@@ -1,7 +1,8 @@
 "use client";
 
+import { DeckSprites } from "@/components/deck-sprites";
 import { MAX_PER_SIDE } from "@/lib/constants";
-import type { Pokemon } from "@/lib/types";
+import type { DeckPreset, Pokemon } from "@/lib/types";
 
 interface DeckPickerFieldProps {
   label: string;
@@ -9,9 +10,25 @@ interface DeckPickerFieldProps {
   items: Pokemon[];
   onRemove: (id: number) => void;
   onAdd: () => void;
+  byId: Map<number, Pokemon>;
+  presets: DeckPreset[];
+  onApplyPreset: (preset: DeckPreset) => void;
+  onSavePreset: () => void;
+  onDeletePreset: (id: string) => void;
 }
 
-export function DeckPickerField({ label, loading, items, onRemove, onAdd }: DeckPickerFieldProps) {
+export function DeckPickerField({
+  label,
+  loading,
+  items,
+  onRemove,
+  onAdd,
+  byId,
+  presets,
+  onApplyPreset,
+  onSavePreset,
+  onDeletePreset,
+}: DeckPickerFieldProps) {
   return (
     <div>
       <label className="block text-[12.5px] text-[var(--app-text-muted)] mb-1.5">{label}</label>
@@ -53,6 +70,44 @@ export function DeckPickerField({ label, loading, items, onRemove, onAdd }: Deck
           </>
         )}
       </div>
+
+      {!loading && presets.length > 0 ? (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {presets.map((preset) => (
+            <span
+              key={preset.id}
+              className="inline-flex items-center gap-1 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-full py-1 pr-1 pl-1.5 text-[12.5px] text-[var(--app-text)]"
+            >
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 cursor-pointer"
+                onClick={() => onApplyPreset(preset)}
+              >
+                <DeckSprites ids={preset.pokemonIds} byId={byId} />
+                {preset.label}
+              </button>
+              <button
+                type="button"
+                aria-label="ลบเด็คที่บันทึกไว้"
+                className="text-[var(--app-text-muted)] hover:text-[var(--app-loss)] text-xs leading-none px-0.5 cursor-pointer"
+                onClick={() => onDeletePreset(preset.id)}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {!loading && items.length > 0 ? (
+        <button
+          type="button"
+          onClick={onSavePreset}
+          className="mt-2 text-[12px] text-[var(--app-accent)] hover:underline cursor-pointer"
+        >
+          + บันทึกเป็นเด็คที่ใช้บ่อย
+        </button>
+      ) : null}
     </div>
   );
 }

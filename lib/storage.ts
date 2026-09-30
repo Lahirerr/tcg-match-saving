@@ -1,6 +1,6 @@
-import { EVENTS_STORAGE_KEY, STORAGE_KEY } from "@/lib/constants";
+import { DECK_PRESETS_STORAGE_KEY, EVENTS_STORAGE_KEY, STORAGE_KEY } from "@/lib/constants";
 import { uid } from "@/lib/format";
-import type { Match, PtcgEvent } from "@/lib/types";
+import type { DeckPreset, Match, PtcgEvent } from "@/lib/types";
 
 export function loadMatches(): Match[] {
   if (typeof window === "undefined") return [];
@@ -46,6 +46,30 @@ export function saveEvents(events: PtcgEvent[]): boolean {
     return true;
   } catch (e) {
     console.error("ไม่สามารถบันทึกข้อมูลรายการได้", e);
+    return false;
+  }
+}
+
+export function loadDeckPresets(): DeckPreset[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(DECK_PRESETS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("ไม่สามารถโหลดเด็คที่บันทึกไว้ได้", e);
+    return [];
+  }
+}
+
+export function saveDeckPresets(presets: DeckPreset[]): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(DECK_PRESETS_STORAGE_KEY, JSON.stringify(presets));
+    return true;
+  } catch (e) {
+    console.error("ไม่สามารถบันทึกเด็คที่ใช้บ่อยได้", e);
     return false;
   }
 }

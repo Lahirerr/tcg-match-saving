@@ -2,7 +2,23 @@ import type { EventCategory, MatchMode } from "@/lib/types";
 
 export const STORAGE_KEY = "ptcg_matchlog_v1";
 export const EVENTS_STORAGE_KEY = "ptcg_events_v1";
+export const DECK_PRESETS_STORAGE_KEY = "ptcg_deck_presets_v1";
 export const MAX_PER_SIDE = 2;
+
+// Placeholder labels — swap these for the real ACE SPEC card names.
+export const ACE_SPEC_OPTIONS: { key: string; label: string; icon: string }[] = [
+  { key: "ace-1", label: "ACE SPEC 1", icon: "/ace-specs/ace-1.png" },
+  { key: "ace-2", label: "ACE SPEC 2", icon: "/ace-specs/ace-2.png" },
+  { key: "ace-3", label: "ACE SPEC 3", icon: "/ace-specs/ace-3.png" },
+  { key: "ace-4", label: "ACE SPEC 4", icon: "/ace-specs/ace-4.png" },
+  { key: "ace-5", label: "ACE SPEC 5", icon: "/ace-specs/ace-5.png" },
+  { key: "ace-6", label: "ACE SPEC 6", icon: "/ace-specs/ace-6.png" },
+  { key: "ace-7", label: "ACE SPEC 7", icon: "/ace-specs/ace-7.png" },
+];
+
+export const ACE_SPEC_BY_KEY: Record<string, { label: string; icon: string }> = Object.fromEntries(
+  ACE_SPEC_OPTIONS.map((o) => [o.key, { label: o.label, icon: o.icon }])
+);
 
 export const EVENT_CATEGORY_LABELS: Record<Exclude<EventCategory, "">, string> = {
   gym: "Gym",

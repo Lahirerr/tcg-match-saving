@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { AceSpecPicker } from "@/components/ace-spec-picker";
 import { DeckPickerField } from "@/components/deck-picker-field";
 import { MAX_PER_SIDE } from "@/lib/constants";
-import type { MatchResult, Pokemon, TurnOrder } from "@/lib/types";
+import type { DeckPreset, MatchResult, Pokemon, TurnOrder } from "@/lib/types";
 
 const fieldInputCls =
   "w-full bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2.5 h-auto text-[var(--app-text)] text-[14.5px] focus-visible:ring-[var(--app-accent)]";
@@ -24,6 +25,11 @@ interface MatchFormProps {
   onOpenPicker: (ctx: "mine" | "opp") => void;
   onRemovePokemon: (ctx: "mine" | "opp", id: number) => void;
   pokemonLoading: boolean;
+  pokemonById: Map<number, Pokemon>;
+  deckPresets: DeckPreset[];
+  onApplyDeckPreset: (ctx: "mine" | "opp", preset: DeckPreset) => void;
+  onSaveDeckPreset: (ctx: "mine" | "opp") => void;
+  onDeleteDeckPreset: (id: string) => void;
   mineSuffix: string;
   onMineSuffixChange: (v: string) => void;
   oppSuffix: string;
@@ -34,6 +40,8 @@ interface MatchFormProps {
   onOrderChange: (v: TurnOrder) => void;
   brick: boolean;
   onBrickToggle: () => void;
+  aceSpec: string;
+  onAceSpecChange: (v: string) => void;
   notes: string;
   onNotesChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -48,6 +56,11 @@ export function MatchForm({
   onOpenPicker,
   onRemovePokemon,
   pokemonLoading,
+  pokemonById,
+  deckPresets,
+  onApplyDeckPreset,
+  onSaveDeckPreset,
+  onDeleteDeckPreset,
   mineSuffix,
   onMineSuffixChange,
   oppSuffix,
@@ -58,6 +71,8 @@ export function MatchForm({
   onOrderChange,
   brick,
   onBrickToggle,
+  aceSpec,
+  onAceSpecChange,
   notes,
   onNotesChange,
   onSubmit,
@@ -91,6 +106,11 @@ export function MatchForm({
             items={mineSelection}
             onRemove={(id) => onRemovePokemon("mine", id)}
             onAdd={() => onOpenPicker("mine")}
+            byId={pokemonById}
+            presets={deckPresets}
+            onApplyPreset={(preset) => onApplyDeckPreset("mine", preset)}
+            onSavePreset={() => onSaveDeckPreset("mine")}
+            onDeletePreset={onDeleteDeckPreset}
           />
           <DeckPickerField
             label="เด็คคู่แข่ง (สูงสุด 2 ตัว)"
@@ -98,6 +118,11 @@ export function MatchForm({
             items={oppSelection}
             onRemove={(id) => onRemovePokemon("opp", id)}
             onAdd={() => onOpenPicker("opp")}
+            byId={pokemonById}
+            presets={deckPresets}
+            onApplyPreset={(preset) => onApplyDeckPreset("opp", preset)}
+            onSavePreset={() => onSaveDeckPreset("opp")}
+            onDeletePreset={onDeleteDeckPreset}
           />
         </div>
 
@@ -250,6 +275,10 @@ export function MatchForm({
               มือนี้ Brick (เปิดมือไม่มีของ)
             </button>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3.5 mb-3.5">
+          <AceSpecPicker value={aceSpec} onChange={onAceSpecChange} />
         </div>
 
         <div className="grid grid-cols-1 gap-3.5 mb-3.5">

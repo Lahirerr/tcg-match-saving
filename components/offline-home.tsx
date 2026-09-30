@@ -16,7 +16,8 @@ import {
 import { EVENT_CATEGORY_LABELS, MAX_PER_SIDE } from "@/lib/constants";
 import { todayISO, uid } from "@/lib/format";
 import { computeOverallStats } from "@/lib/stats";
-import type { EventCategory, Match, Pokemon, PtcgEvent } from "@/lib/types";
+import { useDeckPresets } from "@/lib/use-deck-presets";
+import type { DeckPreset, EventCategory, Match, Pokemon, PtcgEvent } from "@/lib/types";
 
 const CATEGORY_FILTER_ALL = "__all__";
 const EVENT_CATEGORY_KEYS = Object.keys(EVENT_CATEGORY_LABELS) as Exclude<EventCategory, "">[];
@@ -50,6 +51,9 @@ export function OfflineHome({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
 
+  const { presets: deckPresets, addPreset: addDeckPreset, removePreset: removeDeckPreset } =
+    useDeckPresets();
+
   const [categoryFilter, setCategoryFilter] = useState<EventCategory | "">("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -65,6 +69,18 @@ export function OfflineHome({
 
   function removeMine(id: number) {
     setMineSelection((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function applyMinePreset(preset: DeckPreset) {
+    const pokemon = preset.pokemonIds
+      .map((id) => pokemonById.get(id))
+      .filter((p): p is Pokemon => !!p);
+    setMineSelection(pokemon);
+    setMineSuffix(preset.suffix);
+  }
+
+  function saveMinePreset() {
+    addDeckPreset(mineSelection, mineSuffix);
   }
 
   function handleCreateEvent(e: React.FormEvent<HTMLFormElement>) {
@@ -129,6 +145,11 @@ export function OfflineHome({
         }}
         onRemovePokemon={removeMine}
         pokemonLoading={pokemonLoading}
+        pokemonById={pokemonById}
+        deckPresets={deckPresets}
+        onApplyDeckPreset={applyMinePreset}
+        onSaveDeckPreset={saveMinePreset}
+        onDeleteDeckPreset={removeDeckPreset}
         mineSuffix={mineSuffix}
         onMineSuffixChange={setMineSuffix}
         onSubmit={handleCreateEvent}

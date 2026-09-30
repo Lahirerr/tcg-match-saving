@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DeckPickerField } from "@/components/deck-picker-field";
 import { EventCategoryPicker } from "@/components/event-category-picker";
-import type { EventCategory, Pokemon } from "@/lib/types";
+import type { DeckPreset, EventCategory, Pokemon } from "@/lib/types";
 
 const fieldInputCls =
   "w-full bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2.5 h-auto text-[var(--app-text)] text-[14.5px] focus-visible:ring-[var(--app-accent)]";
@@ -23,6 +23,11 @@ interface EventFormProps {
   onOpenPicker: () => void;
   onRemovePokemon: (id: number) => void;
   pokemonLoading: boolean;
+  pokemonById: Map<number, Pokemon>;
+  deckPresets: DeckPreset[];
+  onApplyDeckPreset: (preset: DeckPreset) => void;
+  onSaveDeckPreset: () => void;
+  onDeleteDeckPreset: (id: string) => void;
   mineSuffix: string;
   onMineSuffixChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -40,6 +45,11 @@ export function EventForm({
   onOpenPicker,
   onRemovePokemon,
   pokemonLoading,
+  pokemonById,
+  deckPresets,
+  onApplyDeckPreset,
+  onSaveDeckPreset,
+  onDeleteDeckPreset,
   mineSuffix,
   onMineSuffixChange,
   onSubmit,
@@ -93,6 +103,11 @@ export function EventForm({
             items={mineSelection}
             onRemove={onRemovePokemon}
             onAdd={onOpenPicker}
+            byId={pokemonById}
+            presets={deckPresets}
+            onApplyPreset={onApplyDeckPreset}
+            onSavePreset={onSaveDeckPreset}
+            onDeletePreset={onDeleteDeckPreset}
           />
           <div>
             <Label

@@ -21,7 +21,9 @@ import { formatDateLabel, todayISO, uid, uniqueSorted } from "@/lib/format";
 import { fetchPokemonData } from "@/lib/pokemon";
 import { loadMatchesWithMigration, saveEvents, saveMatches } from "@/lib/storage";
 import { computeMatchupStats, computeOverallStats } from "@/lib/stats";
+import { useDeckPresets } from "@/lib/use-deck-presets";
 import type {
+  DeckPreset,
   Match,
   MatchMode,
   MatchResult,
@@ -53,7 +55,11 @@ export function MatchLogApp() {
   const [result, setResult] = useState<MatchResult>("W");
   const [order, setOrder] = useState<TurnOrder>("");
   const [brick, setBrick] = useState(false);
+  const [aceSpec, setAceSpec] = useState("");
   const [notes, setNotes] = useState("");
+
+  const { presets: deckPresets, addPreset: addDeckPreset, removePreset: removeDeckPreset } =
+    useDeckPresets();
 
   const [filterValue, setFilterValue] = useState("");
   const [historyFilterValue, setHistoryFilterValue] = useState("");
@@ -115,6 +121,19 @@ export function MatchLogApp() {
     setSelection((prev) => ({ ...prev, [context]: prev[context].filter((p) => p.id !== id) }));
   }
 
+  function applyDeckPreset(context: "mine" | "opp", preset: DeckPreset) {
+    const pokemon = preset.pokemonIds
+      .map((id) => pokemonById.get(id))
+      .filter((p): p is Pokemon => !!p);
+    setSelection((prev) => ({ ...prev, [context]: pokemon }));
+    if (context === "mine") setMineSuffix(preset.suffix);
+    else setOppSuffix(preset.suffix);
+  }
+
+  function saveDeckPreset(context: "mine" | "opp") {
+    addDeckPreset(selection[context], context === "mine" ? mineSuffix : oppSuffix);
+  }
+
   function handleDeleteClick(id: string) {
     if (pendingDelete[id]) {
       clearTimeout(pendingTimers.current[id]);
@@ -164,6 +183,7 @@ export function MatchLogApp() {
       result,
       order,
       brick,
+      aceSpec,
       notes: notes.trim(),
       createdAt: Date.now(),
     };
@@ -179,6 +199,7 @@ export function MatchLogApp() {
     // several games in a row with the same deck stays fast.
     setSelection((prev) => ({ ...prev, opp: [] }));
     setBrick(false);
+    setAceSpec("");
     setOppSuffix("");
     setNotes("");
     setResult("W");
@@ -247,6 +268,11 @@ export function MatchLogApp() {
             onOpenPicker={openPicker}
             onRemovePokemon={removePokemon}
             pokemonLoading={pokemonLoading}
+            pokemonById={pokemonById}
+            deckPresets={deckPresets}
+            onApplyDeckPreset={applyDeckPreset}
+            onSaveDeckPreset={saveDeckPreset}
+            onDeleteDeckPreset={removeDeckPreset}
             mineSuffix={mineSuffix}
             onMineSuffixChange={setMineSuffix}
             oppSuffix={oppSuffix}
@@ -257,6 +283,8 @@ export function MatchLogApp() {
             onOrderChange={setOrder}
             brick={brick}
             onBrickToggle={() => setBrick((v) => !v)}
+            aceSpec={aceSpec}
+            onAceSpecChange={setAceSpec}
             notes={notes}
             onNotesChange={setNotes}
             onSubmit={handleSubmit}

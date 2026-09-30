@@ -15,7 +15,8 @@ import { formatDateLabel, uid } from "@/lib/format";
 import { fetchPokemonData } from "@/lib/pokemon";
 import { loadMatchesWithMigration, saveEvents, saveMatches } from "@/lib/storage";
 import { computeMatchupStats, computeOverallStats } from "@/lib/stats";
-import type { Match, MatchResult, Pokemon, PtcgEvent, TurnOrder } from "@/lib/types";
+import { useDeckPresets } from "@/lib/use-deck-presets";
+import type { DeckPreset, Match, MatchResult, Pokemon, PtcgEvent, TurnOrder } from "@/lib/types";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 15, 20];
 const DEFAULT_PAGE_SIZE = 10;
@@ -41,7 +42,11 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
   const [result, setResult] = useState<MatchResult>("W");
   const [order, setOrder] = useState<TurnOrder>("");
   const [brick, setBrick] = useState(false);
+  const [aceSpec, setAceSpec] = useState("");
   const [notes, setNotes] = useState("");
+
+  const { presets: deckPresets, addPreset: addDeckPreset, removePreset: removeDeckPreset } =
+    useDeckPresets();
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -93,6 +98,18 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
     setOppSelection((prev) => prev.filter((p) => p.id !== id));
   }
 
+  function applyOppPreset(preset: DeckPreset) {
+    const pokemon = preset.pokemonIds
+      .map((id) => pokemonById.get(id))
+      .filter((p): p is Pokemon => !!p);
+    setOppSelection(pokemon);
+    setOppSuffix(preset.suffix);
+  }
+
+  function saveOppPreset() {
+    addDeckPreset(oppSelection, oppSuffix);
+  }
+
   function persistMatches(next: Match[]) {
     setMatches(next);
     saveMatches(next);
@@ -119,6 +136,7 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
       result,
       order,
       brick,
+      aceSpec,
       notes: notes.trim(),
       createdAt: Date.now(),
     };
@@ -127,6 +145,7 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
     setOppSelection([]);
     setOppSuffix("");
     setBrick(false);
+    setAceSpec("");
     setNotes("");
     setResult("W");
     setOrder("");
@@ -237,6 +256,11 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
         }}
         onRemovePokemon={removeOpp}
         pokemonLoading={pokemonLoading}
+        pokemonById={pokemonById}
+        deckPresets={deckPresets}
+        onApplyDeckPreset={applyOppPreset}
+        onSaveDeckPreset={saveOppPreset}
+        onDeleteDeckPreset={removeDeckPreset}
         oppSuffix={oppSuffix}
         onOppSuffixChange={setOppSuffix}
         result={result}
@@ -245,6 +269,8 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
         onOrderChange={setOrder}
         brick={brick}
         onBrickToggle={() => setBrick((v) => !v)}
+        aceSpec={aceSpec}
+        onAceSpecChange={setAceSpec}
         notes={notes}
         onNotesChange={setNotes}
         onSubmit={handleAddRound}

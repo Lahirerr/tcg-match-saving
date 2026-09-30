@@ -1,5 +1,5 @@
 import { DeckSprites } from "@/components/deck-sprites";
-import { EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS } from "@/lib/constants";
+import { ACE_SPEC_BY_KEY, EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS } from "@/lib/constants";
 import { formatDateLabel } from "@/lib/format";
 import { idsForDeck } from "@/lib/stats";
 import type { Match, Pokemon } from "@/lib/types";
@@ -50,6 +50,7 @@ export function LogList({
               m.order === "first" ? "ฉันเริ่มก่อน" : m.order === "second" ? "คู่แข่งเริ่มก่อน" : "";
             const resultWord = m.result === "W" ? "ชนะ" : m.result === "L" ? "แพ้" : "เสมอ (บันทึกเดิม)";
             const isConfirming = !!pendingDelete[m.id];
+            const aceSpec = m.aceSpec ? ACE_SPEC_BY_KEY[m.aceSpec] : undefined;
             const resultPillCls =
               m.result === "W"
                 ? "bg-[var(--app-win-soft)] text-[var(--app-win)]"
@@ -92,6 +93,12 @@ export function LogList({
                           className="w-3.5 h-3.5 object-contain"
                         />
                         {EVENT_CATEGORY_LABELS[m.eventCategory]}
+                      </span>
+                    ) : null}
+                    {aceSpec ? (
+                      <span className="inline-flex items-center gap-1 border border-[var(--app-border)] bg-[var(--app-surface-2)] rounded-full px-2 py-0.5 font-semibold text-[11px]">
+                        <img src={aceSpec.icon} alt="" className="w-3.5 h-3.5 object-contain" />
+                        {aceSpec.label}
                       </span>
                     ) : null}
                   </div>

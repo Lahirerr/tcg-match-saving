@@ -23,8 +23,16 @@ export interface Match {
   result: MatchResult;
   order: TurnOrder;
   brick: boolean;
+  aceSpec?: string;
   notes: string;
   createdAt: number;
+}
+
+export interface DeckPreset {
+  id: string;
+  label: string;
+  pokemonIds: number[];
+  suffix: string;
 }
 
 export interface PtcgEvent {

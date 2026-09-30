@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { AceSpecPicker } from "@/components/ace-spec-picker";
 import { DeckPickerField } from "@/components/deck-picker-field";
 import { MAX_PER_SIDE } from "@/lib/constants";
-import type { MatchResult, Pokemon, TurnOrder } from "@/lib/types";
+import type { DeckPreset, MatchResult, Pokemon, TurnOrder } from "@/lib/types";
 
 const fieldInputCls =
   "w-full bg-[var(--app-surface-2)] border-[var(--app-border)] rounded-lg px-[11px] py-2.5 h-auto text-[var(--app-text)] text-[14.5px] focus-visible:ring-[var(--app-accent)]";
@@ -20,6 +21,11 @@ interface RoundFormProps {
   onOpenPicker: () => void;
   onRemovePokemon: (id: number) => void;
   pokemonLoading: boolean;
+  pokemonById: Map<number, Pokemon>;
+  deckPresets: DeckPreset[];
+  onApplyDeckPreset: (preset: DeckPreset) => void;
+  onSaveDeckPreset: () => void;
+  onDeleteDeckPreset: (id: string) => void;
   oppSuffix: string;
   onOppSuffixChange: (v: string) => void;
   result: MatchResult;
@@ -28,6 +34,8 @@ interface RoundFormProps {
   onOrderChange: (v: TurnOrder) => void;
   brick: boolean;
   onBrickToggle: () => void;
+  aceSpec: string;
+  onAceSpecChange: (v: string) => void;
   notes: string;
   onNotesChange: (v: string) => void;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
@@ -38,6 +46,11 @@ export function RoundForm({
   onOpenPicker,
   onRemovePokemon,
   pokemonLoading,
+  pokemonById,
+  deckPresets,
+  onApplyDeckPreset,
+  onSaveDeckPreset,
+  onDeleteDeckPreset,
   oppSuffix,
   onOppSuffixChange,
   result,
@@ -46,6 +59,8 @@ export function RoundForm({
   onOrderChange,
   brick,
   onBrickToggle,
+  aceSpec,
+  onAceSpecChange,
   notes,
   onNotesChange,
   onSubmit,
@@ -63,6 +78,11 @@ export function RoundForm({
             items={oppSelection}
             onRemove={onRemovePokemon}
             onAdd={onOpenPicker}
+            byId={pokemonById}
+            presets={deckPresets}
+            onApplyPreset={onApplyDeckPreset}
+            onSavePreset={onSaveDeckPreset}
+            onDeletePreset={onDeleteDeckPreset}
           />
           <div>
             <Label
@@ -196,6 +216,10 @@ export function RoundForm({
               มือนี้ Brick (เปิดมือไม่มีของ)
             </button>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3.5 mb-3.5">
+          <AceSpecPicker value={aceSpec} onChange={onAceSpecChange} />
         </div>
 
         <div className="grid grid-cols-1 gap-3.5 mb-3.5">
