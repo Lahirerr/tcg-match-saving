@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { ModeTabs } from "@/components/mode-tabs";
 import { MatchForm } from "@/components/match-form";
 import { OfflineHome } from "@/components/offline-home";
@@ -246,6 +247,15 @@ export function MatchLogApp() {
   return (
     <div className="max-w-[880px] mx-auto px-5 pt-8 pb-16">
       <ModeTabs mode={mode} onChange={switchMode} />
+
+      <div className="flex justify-end mb-2">
+        <Link
+          href="/compare"
+          className="inline-flex items-center gap-1 text-[13px] text-[var(--app-text-muted)] hover:text-[var(--app-accent)]"
+        >
+          📊 เปรียบเทียบเด็ค
+        </Link>
+      </div>
 
       <header className="flex flex-wrap items-end justify-between gap-5 mb-7">
         <div>
