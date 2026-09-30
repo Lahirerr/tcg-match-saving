@@ -5,15 +5,14 @@ export const EVENTS_STORAGE_KEY = "ptcg_events_v1";
 export const DECK_PRESETS_STORAGE_KEY = "ptcg_deck_presets_v1";
 export const MAX_PER_SIDE = 2;
 
-// Placeholder labels — swap these for the real ACE SPEC card names.
 export const ACE_SPEC_OPTIONS: { key: string; label: string; icon: string }[] = [
-  { key: "ace-1", label: "ACE SPEC 1", icon: "/ace-specs/ace-1.png" },
-  { key: "ace-2", label: "ACE SPEC 2", icon: "/ace-specs/ace-2.png" },
-  { key: "ace-3", label: "ACE SPEC 3", icon: "/ace-specs/ace-3.png" },
-  { key: "ace-4", label: "ACE SPEC 4", icon: "/ace-specs/ace-4.png" },
-  { key: "ace-5", label: "ACE SPEC 5", icon: "/ace-specs/ace-5.png" },
-  { key: "ace-6", label: "ACE SPEC 6", icon: "/ace-specs/ace-6.png" },
-  { key: "ace-7", label: "ACE SPEC 7", icon: "/ace-specs/ace-7.png" },
+  { key: "ace-1", label: "Hero Cape", icon: "/ace-specs/ace-1.png" },
+  { key: "ace-2", label: "Maximum Belt", icon: "/ace-specs/ace-2.png" },
+  { key: "ace-3", label: "Prime Catcher", icon: "/ace-specs/ace-3.png" },
+  { key: "ace-4", label: "Cyclone", icon: "/ace-specs/ace-4.png" },
+  { key: "ace-5", label: "Secret Box", icon: "/ace-specs/ace-5.png" },
+  { key: "ace-6", label: "Survival Brace", icon: "/ace-specs/ace-6.png" },
+  { key: "ace-7", label: "Unfair Stamp", icon: "/ace-specs/ace-7.png" },
 ];
 
 export const ACE_SPEC_BY_KEY: Record<string, { label: string; icon: string }> = Object.fromEntries(
