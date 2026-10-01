@@ -13,6 +13,10 @@ export const ACE_SPEC_OPTIONS: { key: string; label: string; icon: string }[] = 
   { key: "ace-5", label: "Secret Box", icon: "/ace-specs/ace-5.png" },
   { key: "ace-6", label: "Survival Brace", icon: "/ace-specs/ace-6.png" },
   { key: "ace-7", label: "Unfair Stamp", icon: "/ace-specs/ace-7.png" },
+  { key: "ace-8", label: "Enriching Energy", icon: "/ace-specs/ace-8.png" },
+  { key: "ace-9", label: "Grand Tree", icon: "/ace-specs/ace-9.png" },
+  { key: "ace-10", label: "Legacy Energy", icon: "/ace-specs/ace-10.png" },
+  { key: "ace-11", label: "Neo Upper Energy", icon: "/ace-specs/ace-11.png" },
 ];
 
 export const ACE_SPEC_BY_KEY: Record<string, { label: string; icon: string }> = Object.fromEntries(
