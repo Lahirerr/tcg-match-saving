@@ -10,6 +10,7 @@ import { MatchupTable } from "@/components/matchup-table";
 import { Pagination } from "@/components/pagination";
 import { PokemonPickerDialog } from "@/components/pokemon-picker-dialog";
 import { RoundForm } from "@/components/round-form";
+import { ShareImageDialog } from "@/components/share-image-dialog";
 import { StatChips } from "@/components/stat-chips";
 import { Input } from "@/components/ui/input";
 import { ACE_SPEC_BY_KEY, EVENT_CATEGORY_ICON_SRC, EVENT_CATEGORY_LABELS, MAX_PER_SIDE } from "@/lib/constants";
@@ -56,6 +57,7 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState(false);
   const pendingDeleteEventTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   useEffect(() => {
     const data = loadMatchesWithMigration();
@@ -86,6 +88,10 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
     [eventMatches]
   );
   const historyPagination = usePagination(sortedHistory, DEFAULT_PAGE_SIZE);
+  const roundsAscending = useMemo(
+    () => eventMatches.slice().sort((a, b) => a.createdAt - b.createdAt),
+    [eventMatches]
+  );
 
   function toggleOpp(pokemon: Pokemon) {
     setOppSelection((prev) => {
@@ -261,7 +267,16 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
             ) : null}
           </p>
         </div>
-        <StatChips stats={stats} />
+        <div className="flex flex-col items-end gap-2">
+          <StatChips stats={stats} />
+          <button
+            type="button"
+            onClick={() => setShareOpen(true)}
+            className="inline-flex items-center gap-1.5 border border-[var(--app-border)] bg-[var(--app-surface-2)] text-[var(--app-text)] text-[13px] font-medium px-3 py-1.5 rounded-lg cursor-pointer hover:border-[var(--app-accent)]"
+          >
+            📸 สร้างรูปสรุปแชร์
+          </button>
+        </div>
       </header>
 
       <RoundForm
@@ -375,6 +390,15 @@ export function EventDetailApp({ eventId }: EventDetailAppProps) {
         deckPresets={deckPresets}
         onAddDeckPreset={addDeckPreset}
         onDeleteDeckPreset={removeDeckPreset}
+      />
+
+      <ShareImageDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        event={event}
+        matches={roundsAscending}
+        byId={pokemonById}
+        stats={stats}
       />
     </div>
   );
