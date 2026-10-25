@@ -34,17 +34,35 @@ export function ShareImageDialog({
       setFailed(false);
       return;
     }
+    let cancelled = false;
     const t = setTimeout(async () => {
       if (!cardRef.current) return;
       try {
+        // Wait for every <img> in the card (ACE SPEC icon, category badge, etc.) to
+        // finish loading — html-to-image rasterizes whatever's painted right now, so
+        // an image still mid-fetch comes out blank.
+        const imgs = Array.from(cardRef.current.querySelectorAll("img"));
+        await Promise.all(
+          imgs.map((img) => {
+            if (img.complete) return Promise.resolve();
+            return new Promise<void>((resolve) => {
+              img.addEventListener("load", () => resolve(), { once: true });
+              img.addEventListener("error", () => resolve(), { once: true });
+            });
+          })
+        );
+        if (cancelled || !cardRef.current) return;
         const url = await toPng(cardRef.current, { pixelRatio: 2 });
-        setImageUrl(url);
+        if (!cancelled) setImageUrl(url);
       } catch (e) {
         console.error("สร้างรูปสรุปไม่สำเร็จ", e);
-        setFailed(true);
+        if (!cancelled) setFailed(true);
       }
     }, 50);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [open, event, matches, byId, stats]);
 
   function handleDownload() {

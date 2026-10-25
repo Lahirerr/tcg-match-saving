@@ -251,7 +251,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function Sha
           color: COLORS.muted,
         }}
       >
-        ⚡ สมุดแมทช์
+        จัดทำโดย เพจ บริคแล้วบ่น by MBK
       </div>
     </div>
   );
