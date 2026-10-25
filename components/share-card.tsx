@@ -40,10 +40,11 @@ interface ShareCardProps {
   matches: Match[];
   byId: Map<number, Pokemon>;
   stats: OverallStats;
+  aceSpecIconSrc?: string;
 }
 
 export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function ShareCard(
-  { event, matches, byId, stats },
+  { event, matches, byId, stats, aceSpecIconSrc },
   ref
 ) {
   const aceSpec = event.aceSpec ? ACE_SPEC_BY_KEY[event.aceSpec] : undefined;
@@ -115,8 +116,16 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(function Sha
                 flexShrink: 0,
               }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={aceSpec.icon} alt="" width={16} height={16} style={{ width: 16, height: 16, objectFit: "contain" }} />
+              {aceSpecIconSrc ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={aceSpecIconSrc}
+                  alt=""
+                  width={16}
+                  height={16}
+                  style={{ width: 16, height: 16, objectFit: "contain" }}
+                />
+              ) : null}
               {aceSpec.label}
             </div>
           ) : null}

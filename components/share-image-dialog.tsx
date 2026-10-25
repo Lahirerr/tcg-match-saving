@@ -5,6 +5,7 @@ import { toPng } from "html-to-image";
 import { ShareCard } from "@/components/share-card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ACE_SPEC_BY_KEY } from "@/lib/constants";
 import type { Match, OverallStats, Pokemon, PtcgEvent } from "@/lib/types";
 
 interface ShareImageDialogProps {
@@ -16,6 +17,33 @@ interface ShareImageDialogProps {
   stats: OverallStats;
 }
 
+function fetchAsDataUrl(src: string): Promise<string> {
+  return fetch(src)
+    .then((res) => res.blob())
+    .then(
+      (blob) =>
+        new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(blob);
+        })
+    );
+}
+
+function waitForImages(root: HTMLElement): Promise<void> {
+  const imgs = Array.from(root.querySelectorAll("img"));
+  return Promise.all(
+    imgs.map((img) => {
+      if (img.complete) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        img.addEventListener("load", () => resolve(), { once: true });
+        img.addEventListener("error", () => resolve(), { once: true });
+      });
+    })
+  ).then(() => undefined);
+}
+
 export function ShareImageDialog({
   open,
   onOpenChange,
@@ -25,32 +53,52 @@ export function ShareImageDialog({
   stats,
 }: ShareImageDialogProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [aceSpecIconSrc, setAceSpecIconSrc] = useState<string | undefined>(undefined);
+  const [cardReady, setCardReady] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
+  // Step 1: once open, pre-fetch the ACE SPEC icon as a data URI — html-to-image's
+  // own image fetching is unreliable for a real network-loaded file (unlike the
+  // Pokémon sprites, which are already base64 and need no fetch at all).
   useEffect(() => {
     if (!open) {
+      setAceSpecIconSrc(undefined);
+      setCardReady(false);
       setImageUrl(null);
       setFailed(false);
       return;
     }
     let cancelled = false;
+    const spec = event.aceSpec ? ACE_SPEC_BY_KEY[event.aceSpec] : undefined;
+    if (!spec) {
+      setCardReady(true);
+      return;
+    }
+    fetchAsDataUrl(spec.icon)
+      .then((dataUrl) => {
+        if (cancelled) return;
+        setAceSpecIconSrc(dataUrl);
+        setCardReady(true);
+      })
+      .catch((e) => {
+        console.error("โหลดไอคอน ACE SPEC ไม่สำเร็จ", e);
+        if (!cancelled) setCardReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, event.aceSpec]);
+
+  // Step 2: once the card is mounted with its final (data-URI) image sources,
+  // wait for every <img> to actually finish painting, then capture it.
+  useEffect(() => {
+    if (!open || !cardReady) return;
+    let cancelled = false;
     const t = setTimeout(async () => {
       if (!cardRef.current) return;
       try {
-        // Wait for every <img> in the card (ACE SPEC icon, category badge, etc.) to
-        // finish loading — html-to-image rasterizes whatever's painted right now, so
-        // an image still mid-fetch comes out blank.
-        const imgs = Array.from(cardRef.current.querySelectorAll("img"));
-        await Promise.all(
-          imgs.map((img) => {
-            if (img.complete) return Promise.resolve();
-            return new Promise<void>((resolve) => {
-              img.addEventListener("load", () => resolve(), { once: true });
-              img.addEventListener("error", () => resolve(), { once: true });
-            });
-          })
-        );
+        await waitForImages(cardRef.current);
         if (cancelled || !cardRef.current) return;
         const url = await toPng(cardRef.current, { pixelRatio: 2 });
         if (!cancelled) setImageUrl(url);
@@ -63,7 +111,7 @@ export function ShareImageDialog({
       cancelled = true;
       clearTimeout(t);
     };
-  }, [open, event, matches, byId, stats]);
+  }, [open, cardReady, event, matches, byId, stats]);
 
   function handleDownload() {
     if (!imageUrl) return;
@@ -113,9 +161,16 @@ export function ShareImageDialog({
         </DialogContent>
       </Dialog>
 
-      {open ? (
+      {open && cardReady ? (
         <div style={{ position: "fixed", top: 0, left: -9999, zIndex: -1, pointerEvents: "none" }}>
-          <ShareCard ref={cardRef} event={event} matches={matches} byId={byId} stats={stats} />
+          <ShareCard
+            ref={cardRef}
+            event={event}
+            matches={matches}
+            byId={byId}
+            stats={stats}
+            aceSpecIconSrc={aceSpecIconSrc}
+          />
         </div>
       ) : null}
     </>
